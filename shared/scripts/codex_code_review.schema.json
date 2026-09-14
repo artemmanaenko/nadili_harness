@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "candidate": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "APPROVED",
+        "REQUEST_CHANGES",
+        "NEEDS_REWORK"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "checklist_sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "not_applicable"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "priority": {
+            "type": "string",
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "actual": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "impact": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "initial_miss",
+              "fix_regression",
+              "unresolved",
+              "base_change"
+            ]
+          }
+        },
+        "required": [
+          "priority",
+          "location",
+          "expected",
+          "actual",
+          "impact",
+          "action",
+          "id",
+          "origin"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "prior_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "rejected",
+              "open"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "candidate",
+    "verdict",
+    "summary",
+    "checklist_sections",
+    "findings",
+    "prior_findings"
+  ],
+  "additionalProperties": false
+}

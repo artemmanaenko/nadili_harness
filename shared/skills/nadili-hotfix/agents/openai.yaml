@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nadili Hotfix"
+  short_description: "Finish an existing patch and integrate into main"
+  default_prompt: "Use $nadili-hotfix to finish this change, verify it and integrate it into main."

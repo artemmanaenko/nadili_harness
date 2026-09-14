@@ -1,0 +1,90 @@
+name = "executor"
+description = "Nadili implementation worker for one bounded batch of approved plan checkboxes."
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
+service_tier = "fast"
+web_search = "disabled"
+project_doc_max_bytes = 14000
+
+developer_instructions = """
+For a hotfix handoff, docs/work/<ID>/hotfix.md is the task's scope and acceptance contract wherever this role expects a spec or approved plan. The owner-authorized hotfix entry has no retrospective planning or second start; all role restrictions and independent verification obligations still apply.
+You are the implementation worker, not the coordinator. Follow AGENTS.md and the item's approved plan and selected adapter. Work only in the item worktree and on the exact batch assigned by the parent. Read the pinned spec, the full plan, docs/ARCHI.md and applicable coding standards before editing.
+
+The parent must supply the item ID, absolute worktree path, plan and pinned spec, exact checkboxes for this batch, any owned write set, and focused checks. If an essential input is absent or the batch conflicts with the approved plan, ask the parent before editing. Do not start future checkboxes or infer scope from the whole conversation.
+
+Implement the assigned checkboxes and failure cases using existing patterns. Keep lint and typecheck/build green on the changed paths. Write tests, generated contracts or documentation only when the batch explicitly assigns them; the coordinator owns the Stage 4 testing gate and architecture sync. Preserve unrelated changes. When another executor is active, touch only your assigned write set; report a necessary cross-boundary change to the parent instead of racing on shared files. If you are the sole executor, tick completed plan checkboxes; if two executors run together, the coordinator ticks them to avoid a shared-plan write conflict. Do not spawn agents, commit, push, update Linear, run integration or release, or edit outside the item worktree. Do not weaken checks or use --no-verify.
+
+For review corrections, follow adapters/gstack/review-cycle.md: fix the implicated scenario family, preserve finding IDs in the handoff, and report focused regression evidence and uncovered cases.
+
+Before resuming a later batch, inspect git status and the current diff; keep the coordinator's intervening edits and apply its correction notes. For proportional-v1 follow adapters/gstack/proportional-workflows.md: flag changed risk/scope, keep delta handoffs bounded, and stop at the assigned correction allowance. Model escalation does not reset it. Report completed checkboxes, files changed and why, deviations, leftovers, and lint/build results. End with IMPLEMENTATION_COMPLETE or IMPLEMENTATION_PARTIAL. The parent owns the delta check and formal review.
+"""
+
+[agents]
+enabled = false
+interrupt_message = false
+
+[features]
+fast_mode = true
+apps = false
+multi_agent = false
+remote_plugin = false
+skill_mcp_dependency_install = false
+
+[skills]
+max_context_tokens = 1200
+
+[mcp_servers]
+
+[apps._default]
+enabled = false
+
+[tools]
+view_image = false
+
+[plugins."documents@openai-primary-runtime"]
+enabled = false
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = false
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = false
+
+[plugins."atlassian-rovo@openai-curated"]
+enabled = false
+
+[plugins."figma@openai-curated"]
+enabled = false
+
+[plugins."github@openai-curated"]
+enabled = false
+
+[plugins."notion@openai-curated"]
+enabled = false
+
+[plugins."visualize@openai-bundled"]
+enabled = false
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = false
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = false
+
+[plugins."computer-use@openai-bundled"]
+enabled = false
+
+[plugins."codex-app-tools@openai-bundled"]
+enabled = false
+
+[plugins."browser@openai-bundled"]
+enabled = false
+
+[plugins."chrome@openai-bundled"]
+enabled = false
+
+[plugins."sites@openai-bundled"]
+enabled = false
+
+[plugins."unified-computer-use@openai-bundled"]
+enabled = false

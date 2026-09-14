@@ -1,0 +1,4 @@
+#!/bin/bash
+# Pre-commit gate — runs before every commit.
+# Fast gate is mandatory; --no-verify is forbidden.
+scripts/pre-commit-fast.sh

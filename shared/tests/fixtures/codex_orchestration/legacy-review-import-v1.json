@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "agents": {
+    "synthetic-import-reviewer": {
+      "fork_turns": "none",
+      "history_exception": null
+    }
+  },
+  "amendments": [],
+  "limits": {
+    "max_agent_threads": 8,
+    "max_fast_gates": 1,
+    "max_integration_checks": 1,
+    "max_live_eval_calls": 12,
+    "max_review_rounds_per_scope": 2
+  },
+  "reservations": {
+    "synthetic-review-1": {
+      "kind": "review",
+      "units": 1,
+      "agent_id": "synthetic-import-reviewer",
+      "fork_turns": "none",
+      "scope": "code"
+    },
+    "synthetic-review-2": {
+      "kind": "review",
+      "units": 1,
+      "agent_id": "synthetic-import-reviewer",
+      "fork_turns": "none",
+      "scope": "code"
+    },
+    "synthetic-fast-gate-1": {
+      "kind": "fast-gate",
+      "units": 1
+    },
+    "synthetic-fast-gate-2": {
+      "kind": "fast-gate",
+      "units": 1,
+      "alerts": [
+        "full fast gate target exceeded"
+      ]
+    }
+  },
+  "usage": {
+    "agent_ids": [
+      "synthetic-import-reviewer"
+    ],
+    "fast_gates": 2,
+    "integration_checks": 0,
+    "live_eval_calls": 0,
+    "review_rounds_by_scope": {
+      "code": 2
+    }
+  }
+}

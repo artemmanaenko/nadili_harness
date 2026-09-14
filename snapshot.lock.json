@@ -1,0 +1,330 @@
+{
+  "files": {
+    "adapters/TRIP/adapter.md": {
+      "mode": "100644",
+      "sha256": "327e4cbaa1d0d0207ed09fc227ed91c2427c18a51c86f5ae93ca84503c7fa9fb"
+    },
+    "adapters/TRIP/implement.md": {
+      "mode": "100644",
+      "sha256": "667c55988704e31b377bb59ca0d71e2068b985664c335cb4bb3430e4df3fb3b0"
+    },
+    "adapters/TRIP/plan.md": {
+      "mode": "100644",
+      "sha256": "e44f216476d429d6f5064f2d760deb8174a70c59871ac69961429b42840e37b3"
+    },
+    "adapters/TRIP/process.md": {
+      "mode": "100644",
+      "sha256": "2341ca1bc1e101fae3a5407c494815a95c58c5cc63fce3cf0f1d8eae3a5b3907"
+    },
+    "adapters/TRIP/shims/TRIP-1-plan.SKILL.md": {
+      "mode": "100644",
+      "sha256": "5fea300048fb8907bd9000455cd190f92c5bf686dc929d5e8d634cc91f92a4df"
+    },
+    "adapters/TRIP/shims/TRIP-2-implement.SKILL.md": {
+      "mode": "100644",
+      "sha256": "2c53fdeaf15f4f6360b58ace21e694ef7256be282f6c3e2efdd7c90e2585d1a6"
+    },
+    "adapters/TRIP/shims/TRIP-3-release.SKILL.md": {
+      "mode": "100644",
+      "sha256": "8ec7d6e51992a86a073a9ea01605acd2c867c126d991b603c4aa8d3192912ad4"
+    },
+    "adapters/TRIP/shims/TRIP-review.SKILL.md": {
+      "mode": "100644",
+      "sha256": "fe78cfc86d3239216c7f5cb66c0afe633009870499474fa17b168141cfafe5e9"
+    },
+    "adapters/TRIP/shims/TRIP-review.checklist.md": {
+      "mode": "100644",
+      "sha256": "1f4c70e80eb215d6a1b299c3360093b5e4a19f4e5ba8a2567e44eb13d498d006"
+    },
+    "adapters/TRIP/shims/TRIP-review.cr-template.md": {
+      "mode": "100644",
+      "sha256": "0f384ad286d211ce85db42b5fa5420fdef695ddbbb4b8e559ab6e6123fb10bdc"
+    },
+    "adapters/TRIP/shims/TRIP-test.SKILL.md": {
+      "mode": "100644",
+      "sha256": "27d888f95704aed7b2122fdf0c2d860334d9366a27f754bea3f80b147a26b198"
+    },
+    "adapters/gstack/adapter.md": {
+      "mode": "100644",
+      "sha256": "52f4b72a558dd96fa31604dcaa8167adc10a0f45333a35bad7a1c5b4f58d78d8"
+    },
+    "adapters/gstack/config.toml": {
+      "mode": "100644",
+      "sha256": "5991e9163df69f616e4132aee40cf21a0b8135e597a239bb39d8f2032b07b192"
+    },
+    "adapters/gstack/orchestrator.md": {
+      "mode": "100644",
+      "sha256": "76cc24ccaf0d5f6e8ede615a293e3306114d137639669c1b6553a426f579b3a5"
+    },
+    "adapters/gstack/proportional-workflows.md": {
+      "mode": "100644",
+      "sha256": "a3fa27362ba37a1d80037d41f05e3c5b0e62978e8ad79a3c3805d197513a41c6"
+    },
+    "adapters/gstack/review-cycle.md": {
+      "mode": "100644",
+      "sha256": "ca0205302b282068123ee2a1d1e58298e7ad9c8a4a6717cd4ce3b3fc239c1958"
+    },
+    "adapters/gstack/roles/architect.toml": {
+      "mode": "100644",
+      "sha256": "306329c831ab4808c9953e9c2f9feb11364e75a535e325e6ed834047036c0ddb"
+    },
+    "adapters/gstack/roles/backend_qa.toml": {
+      "mode": "100644",
+      "sha256": "d51f03035662ff401463bc30cc1f92b03642489698d638cbd1ac28d35d62008a"
+    },
+    "adapters/gstack/roles/executor.toml": {
+      "mode": "100644",
+      "sha256": "b6eba318431b73d5bd4d6ad7ff3d2b95c5e0046100b06604aef475d3bbacb446"
+    },
+    "adapters/gstack/roles/frontend_qa.toml": {
+      "mode": "100644",
+      "sha256": "06f40a1002d623b4f2f398c5d10b53e07f418765c882bf425292ee3c74b77ce5"
+    },
+    "adapters/gstack/roles/reviewer.toml": {
+      "mode": "100644",
+      "sha256": "ac7860a53176135d613a275bd7c2b84e724adabae30cf0ffd5103c8aed38cee8"
+    },
+    "adapters/gstack/roles/small_product_reviewer.toml": {
+      "mode": "100644",
+      "sha256": "f386f50fbc3deae72f89a1f7898a01624a68b9b03e9ad45af70946edf6691629"
+    },
+    "shared/claude/settings.json": {
+      "mode": "100644",
+      "sha256": "1020c7c43e83d859f25bf9f5e225fc692a115e67e76e05e2c8962369f48e3059"
+    },
+    "shared/claude/skills/nadili-architecture/SKILL.md": {
+      "mode": "100644",
+      "sha256": "e726d25f81abe68f94713d92b17f2f2b208c41a3e103671d30a71acc03887174"
+    },
+    "shared/claude/skills/nadili-backend-qa/SKILL.md": {
+      "mode": "100644",
+      "sha256": "d60fa1b91647d2f76225901ffddf5040481077821206b54f7ec5508ea967c762"
+    },
+    "shared/claude/skills/nadili-deliver/SKILL.md": {
+      "mode": "100644",
+      "sha256": "51ccb3ec86eb7a3660e977eda021e5944383ff9543a7bba7e6545b8d5c1edd59"
+    },
+    "shared/claude/skills/nadili-discuss/SKILL.md": {
+      "mode": "100644",
+      "sha256": "097d47306526ab281b8bb82a85f7c058ee493a2544e69bec07eb467b5cfcfe83"
+    },
+    "shared/claude/skills/nadili-frontend-qa/SKILL.md": {
+      "mode": "100644",
+      "sha256": "814a296962166dc466c94c94345f8c939e142aabae0e32ae876219351ff2e1b5"
+    },
+    "shared/claude/skills/nadili-hotfix/SKILL.md": {
+      "mode": "100644",
+      "sha256": "9c61bb9d50deadb468fa3fea16cf39b0b7653421533206e84d740706993c2236"
+    },
+    "shared/claude/skills/nadili-implement/SKILL.md": {
+      "mode": "100644",
+      "sha256": "3764e8e7edf328924931e3b09f4a9581a636bf75f6b9409a0df181e869c17351"
+    },
+    "shared/claude/skills/nadili-plan/SKILL.md": {
+      "mode": "100644",
+      "sha256": "2054989aff16594c3255be6f36b69b82b0d1c123ab866c1d3bebc8cdebab0354"
+    },
+    "shared/claude/skills/nadili-review/SKILL.md": {
+      "mode": "100644",
+      "sha256": "d6c8fbc13909240c5bc23fa4ce7af9074f5e9017c121e4c3c75c27979651d453"
+    },
+    "shared/process/SKILL.md": {
+      "mode": "100644",
+      "sha256": "56a1b8ad9272af1c025d4f7aa21b998268df2566bf75291a0401340a7bf276c8"
+    },
+    "shared/process/cr-template.md": {
+      "mode": "100644",
+      "sha256": "0670112ae584ad9edf104f562541386b7e6a2ff5e35e9ec3e264d6948b3417c3"
+    },
+    "shared/process/gates.md": {
+      "mode": "100644",
+      "sha256": "e0785cb1c1aaa58af86f12098ab90562eb8953da949a1624982119a12b5cd879"
+    },
+    "shared/process/integrate.md": {
+      "mode": "100644",
+      "sha256": "49eb4d4e28457e182079a3e507fd6d1f9bd7e819a4df74a514f9e882620074ce"
+    },
+    "shared/process/review-checklist.md": {
+      "mode": "100644",
+      "sha256": "4fd40816d42cf9a5a5ff0afa479b7fdc004a2edeb096674a8ce3b6c245b13e7c"
+    },
+    "shared/process/review.md": {
+      "mode": "100644",
+      "sha256": "92eb89754d3d47e2345d09e212abe565ea9e7726e58d21e545bbe7f8b2d497c9"
+    },
+    "shared/process/scripts/release-cleanup.sh": {
+      "mode": "100755",
+      "sha256": "4db90147508adbd03270b7c36545702dd7bf2f2720bc83204fd0ff3dc1528f3c"
+    },
+    "shared/process/testing.md": {
+      "mode": "100644",
+      "sha256": "c28afdc310b8c7bc05d393a718cc5c2e0c512a5ceba836328e71fda02359d842"
+    },
+    "shared/scripts/changed_areas.py": {
+      "mode": "100644",
+      "sha256": "16803194c2fa5dc649a7f9d86a1797d7644a211bfe822858352038c710cf2125"
+    },
+    "shared/scripts/check_boundaries.py": {
+      "mode": "100644",
+      "sha256": "9b506e1b08653b41275f810c624de7062510206582172e474cf0a2ccdfbd5584"
+    },
+    "shared/scripts/check_hook_install.py": {
+      "mode": "100755",
+      "sha256": "5de5da39b6d3c329cd171ca7faabed9612efe536fd1b4d2d7affeee79871f805"
+    },
+    "shared/scripts/check_item_ready.py": {
+      "mode": "100644",
+      "sha256": "75654e1a10fe632cf56fb925aefd6d2dd3e7e8fcbf20f629f41e408e89176f7b"
+    },
+    "shared/scripts/check_plan_interleaving.py": {
+      "mode": "100644",
+      "sha256": "0a732ad8d369f4b2ecd32538d7a3e9376227c4afdc9ca361ec9bbce8ee0320c8"
+    },
+    "shared/scripts/check_work_item_scope.py": {
+      "mode": "100644",
+      "sha256": "58fa44dbd6db7c815f18a52541c0bf8d36304a1d312860d2cfdf14c94d77c521"
+    },
+    "shared/scripts/codex_code_review.py": {
+      "mode": "100644",
+      "sha256": "d5379f05fdba29a48d7ca864f8ff0d7e185396d71496c67527f614c7d64bd997"
+    },
+    "shared/scripts/codex_code_review.schema.json": {
+      "mode": "100644",
+      "sha256": "7c5a0f6c11a17de712487766416ffba41cd3fedf268569ea935498388fe98ffa"
+    },
+    "shared/scripts/codex_orchestration_budget.py": {
+      "mode": "100644",
+      "sha256": "1836edfda34d162cf98959017c4929600dd2f81a4cde8e3cb5f911118dc30c2f"
+    },
+    "shared/scripts/codex_review_packet.py": {
+      "mode": "100644",
+      "sha256": "c880ff54053b5c66989b64d21a287a7ab098d1bb553c7c2c88e31f2afb059334"
+    },
+    "shared/scripts/dev-check.sh": {
+      "mode": "100755",
+      "sha256": "3c6d5cc83c115112f0d33f5abb52db564075b4fe0eef5000a1412d22b4f68a33"
+    },
+    "shared/scripts/gate_evidence.py": {
+      "mode": "100644",
+      "sha256": "d1138db96ede64d019761e41ffb784120117c199e1d3c1e0fe6a4b00a00ecd63"
+    },
+    "shared/scripts/gate_executor.py": {
+      "mode": "100644",
+      "sha256": "99dd97745aeff0a3e7cf529929f5f8d7221114b7a4ed58b17844c3b99b8ced8d"
+    },
+    "shared/scripts/gate_lanes.py": {
+      "mode": "100644",
+      "sha256": "d2240f8b831134474f2d416b176980426cc0e3423a6745db0ae4e984bd83a9c8"
+    },
+    "shared/scripts/hooks/git_guard.py": {
+      "mode": "100644",
+      "sha256": "54dcbdc18d6ce89dc3d6aeb1d52096325ba55909d8c8d547dddba987cb58b85b"
+    },
+    "shared/scripts/hooks/pre-commit": {
+      "mode": "100755",
+      "sha256": "97af1e73648439802c76570174524d77c3ea493ae67cb8218e49e76c1abe2142"
+    },
+    "shared/scripts/hotfix_contract.py": {
+      "mode": "100644",
+      "sha256": "a4d1d91b8c80d5d15ceac8c1284a5ca0f344ff420aa627fbbb007e51e40d3b2c"
+    },
+    "shared/scripts/integration-check.sh": {
+      "mode": "100644",
+      "sha256": "1cda99a15a6822b4774cce568001787d5618ed584732146469c33e4194a6da86"
+    },
+    "shared/scripts/lib/gate-slots.sh": {
+      "mode": "100644",
+      "sha256": "366edb5af33dbace5984345196249857281f899faf9cc08b658249720125a127"
+    },
+    "shared/scripts/lint.sh": {
+      "mode": "100755",
+      "sha256": "fd613cabd5cb6ec328ddec7a131777c7d5aeed677867fb2aacfbb5e9766ef3be"
+    },
+    "shared/scripts/pre-commit-fast.sh": {
+      "mode": "100755",
+      "sha256": "2e54a683f32c0a53a77650a593f1c1c43e7967cc6c5819bb7db9942100d43a89"
+    },
+    "shared/scripts/pre-commit.sh": {
+      "mode": "100755",
+      "sha256": "18fc90014de148e7d3e9e40b0a9b13900f357ad279b596c3bc976986aef2171c"
+    },
+    "shared/scripts/python-check.sh": {
+      "mode": "100644",
+      "sha256": "25b521a2cc1c7b8c49c21c71e9a311b2739733388fbe2616cba6cee6b38728d8"
+    },
+    "shared/scripts/review_telemetry.py": {
+      "mode": "100644",
+      "sha256": "230beaf0b2c4e79cbe4b46eb3ca30131625eca2d5458e30d19f36a3c308e89af"
+    },
+    "shared/scripts/test.sh": {
+      "mode": "100755",
+      "sha256": "9e0a0d5113011915546acd0c71b54b00a5f86eb175cbd963f1f04bdfb2d88ed2"
+    },
+    "shared/scripts/web-check.sh": {
+      "mode": "100755",
+      "sha256": "b5fae7cb1733caea954453de12fd947a85b465bd3ebb1b36c84b8faf75c381e6"
+    },
+    "shared/scripts/worktree-new.sh": {
+      "mode": "100755",
+      "sha256": "d037a733e7e58b51b87cd0bacbbd2798e390e2f253d81bb95ab09245bb41823d"
+    },
+    "shared/scripts/worktree-preflight.sh": {
+      "mode": "100644",
+      "sha256": "e48b962903036c6be528c6e16d33c0a3324ab46354071d1fa144c64108101eae"
+    },
+    "shared/skills/nadili-architecture/SKILL.md": {
+      "mode": "100644",
+      "sha256": "b6ec4cda9e50619d6b87009340f121c815d733404e7a13d75f5cca686f0d707c"
+    },
+    "shared/skills/nadili-backend-qa/SKILL.md": {
+      "mode": "100644",
+      "sha256": "a2c989ac3c62dd4864cd6197b2bb5378dd716cb1bd4f6252b6b34587a455b1fc"
+    },
+    "shared/skills/nadili-deliver/SKILL.md": {
+      "mode": "100644",
+      "sha256": "59cc222b1cf88972a97369cfeabd511c3033e20126dbc51ba565d758b4473a21"
+    },
+    "shared/skills/nadili-discuss/SKILL.md": {
+      "mode": "100644",
+      "sha256": "ca797525e7d165687a2291773f3f7e71999e382ec7e92b2e958bc0d3b7c50876"
+    },
+    "shared/skills/nadili-frontend-qa/SKILL.md": {
+      "mode": "100644",
+      "sha256": "74a5ff7c97e5ac94861e90b84dbed24592872fc84d176dcc379dbea8b097cb0b"
+    },
+    "shared/skills/nadili-hotfix/SKILL.md": {
+      "mode": "100644",
+      "sha256": "e036e4f170a5565247fc38b0d8637dae79687b2f1fa6cbe4e0f9cd95a0f27c6a"
+    },
+    "shared/skills/nadili-hotfix/agents/openai.yaml": {
+      "mode": "100644",
+      "sha256": "5eebab0e7440c61803feb40346305b1a5f3caa429b890ca370a279368598de95"
+    },
+    "shared/skills/nadili-implement/SKILL.md": {
+      "mode": "100644",
+      "sha256": "ce534ebc015cbe85c4c0f33bb21a076a8a55886461beca9278ce6c7fc5a4ebc0"
+    },
+    "shared/skills/nadili-plan/SKILL.md": {
+      "mode": "100644",
+      "sha256": "09926f73ff929ae1f8f6bfd29184d8aba6c7619d448896dc18f01668b0fe6b3a"
+    },
+    "shared/skills/nadili-review/SKILL.md": {
+      "mode": "100644",
+      "sha256": "0082984919f19db58eef009b277e9d2ca3fb251ff15e08d561219e1f9c92d665"
+    },
+    "shared/tests/unit/test_codex_code_review.py": {
+      "mode": "100644",
+      "sha256": "ede48c9f3f4e31eef4f86a3004681ce32035f351a99d61e280deab92bd1b0b51"
+    },
+    "shared/tests/unit/test_codex_orchestration_budget.py": {
+      "mode": "100644",
+      "sha256": "d1c7fd9e1790d83ee8841e2351bee74f96ecb8d66e2a14cdf4c3b276bec72430"
+    },
+    "shared/tests/unit/test_gate_executor.py": {
+      "mode": "100644",
+      "sha256": "c9583e004aa58f220e76fbf427f6453262ebde9747f9e1ea83a71fa247c7744e"
+    }
+  },
+  "source_revision": "6d0f3fe10d470a51eeb0b0999dca0b9dfdad6e94",
+  "version": 1
+}
