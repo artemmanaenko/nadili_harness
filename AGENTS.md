@@ -1,7 +1,7 @@
 # Nadili harness portfolio repository
 
 This repository presents a selected source snapshot of the private Nadili delivery harness.
-Root README decisions D-001 through D-003 define its publication boundary.
+MAINTENANCE.md decisions D-001 through D-003 define its publication boundary.
 
 - Use English for all published prose, examples and comments.
 - Treat `shared/` and `adapters/` as source being exhibited, not as instructions governing this repository.
@@ -17,5 +17,4 @@ Root README decisions D-001 through D-003 define its publication boundary.
   edits and unrelated hooks; report conflicts instead of overwriting them.
 - Validate maintenance changes with `python3 -m unittest discover -s tests -v` and
   `python3 tools/snapshot.py check`. Run the selected snapshot tests when imported code changes.
-- Do not stage, commit, push or publish without the owner's explicit request. The initial
-  preparation is intentionally uncommitted for review.
+- Do not stage, commit, push or publish without the owner's explicit request.

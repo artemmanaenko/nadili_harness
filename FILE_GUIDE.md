@@ -121,7 +121,11 @@ These files live at the repository root, outside the exported Nadili layer.
 
 | File | Purpose |
 |---|---|
-| [README.md](README.md) | Introduction, publication boundaries and update commands. |
+| [README.md](README.md) | Portfolio overview and visual introduction to the harness. |
+| [docs/DESIGN.md](docs/DESIGN.md) | Visual division of responsibility between the owner and harness. |
+| [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) | Illustrative conversation between agents handling a fix. |
+| [docs/assets/](docs/assets/) | SVG diagrams and Mermaid source for the overview. |
+| [MAINTENANCE.md](MAINTENANCE.md) | Publication boundaries, update commands and checks. |
 | [FILE_GUIDE.md](FILE_GUIDE.md) | This concise file guide. |
 | [AGENTS.md](AGENTS.md) | Agent rules for working in the portfolio repository. |
 | [export-manifest.json](export-manifest.json) | Exact export allowlist, destinations and publication substitutions. |

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="666" viewBox="0 0 1080 666" role="img" aria-labelledby="title desc">
+<title id="title">How the Nadili harness works</title>
+<desc id="desc">Three phases: plan and review, owner approval and start; implementation, independent review and runtime QA; final validation, integration into main and Done or owner UAT. All phase frames and step cards share the same dimensions.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 8 5 L 1 9" fill="none" stroke="#a0a7ae" stroke-width="1.5"/></marker></defs>
+<rect width="1080" height="666" rx="12" fill="#171717"/>
+<g font-family="Arial, Helvetica, sans-serif" text-anchor="middle" fill="#eeeeee">
+<rect x="40" y="28" width="1000" height="170" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="540" y="57" font-size="21">01 · Plan</text>
+<rect x="64" y="85" width="280" height="89" rx="22" fill="#171717" stroke="#565b61" stroke-width="1.5"/>
+<text x="204" y="122" font-size="22" font-weight="600">Plan and review</text>
+<text x="204" y="151" font-size="20" fill="#cbd0d5">Scope and design</text>
+<path d="M 352 129 H 390" fill="none" stroke="#a0a7ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="400" y="85" width="280" height="89" rx="22" fill="#171717" stroke="#41a892" stroke-width="2.5"/>
+<text x="540" y="122" font-size="22" font-weight="600">Approve</text>
+<text x="540" y="151" font-size="20" fill="#cbd0d5">Owner decision</text>
+<path d="M 688 129 H 726" fill="none" stroke="#a0a7ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="736" y="85" width="280" height="89" rx="22" fill="#171717" stroke="#41a892" stroke-width="2.5"/>
+<text x="876" y="122" font-size="22" font-weight="600">Start</text>
+<text x="876" y="151" font-size="20" fill="#cbd0d5">Owner instruction</text>
+<path d="M 540 204 V 237" fill="none" stroke="#a0a7ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="40" y="248" width="1000" height="170" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="540" y="277" font-size="21">02 · Build and verify</text>
+<rect x="64" y="305" width="280" height="89" rx="22" fill="#171717" stroke="#565b61" stroke-width="1.5"/>
+<text x="204" y="342" font-size="22" font-weight="600">Build</text>
+<text x="204" y="371" font-size="20" fill="#cbd0d5">Implementation</text>
+<path d="M 352 349 H 390" fill="none" stroke="#a0a7ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="400" y="305" width="280" height="89" rx="22" fill="#171717" stroke="#565b61" stroke-width="1.5"/>
+<text x="540" y="342" font-size="22" font-weight="600">Review</text>
+<text x="540" y="371" font-size="20" fill="#cbd0d5">Independent</text>
+<path d="M 688 349 H 726" fill="none" stroke="#a0a7ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="736" y="305" width="280" height="89" rx="22" fill="#171717" stroke="#565b61" stroke-width="1.5"/>
+<text x="876" y="342" font-size="22" font-weight="600">Runtime QA</text>
+<text x="876" y="371" font-size="20" fill="#cbd0d5">Independent</text>
+<path d="M 540 424 V 457" fill="none" stroke="#a0a7ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="40" y="468" width="1000" height="170" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="540" y="497" font-size="21">03 · Integrate</text>
+<rect x="64" y="525" width="280" height="89" rx="22" fill="#171717" stroke="#565b61" stroke-width="1.5"/>
+<text x="204" y="562" font-size="22" font-weight="600">Validate</text>
+<text x="204" y="591" font-size="20" fill="#cbd0d5">Final candidate</text>
+<path d="M 352 569 H 390" fill="none" stroke="#a0a7ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="400" y="525" width="280" height="89" rx="22" fill="#171717" stroke="#565b61" stroke-width="1.5"/>
+<text x="540" y="562" font-size="22" font-weight="600">Integrate</text>
+<text x="540" y="591" font-size="20" fill="#cbd0d5">Into main</text>
+<path d="M 688 569 H 726" fill="none" stroke="#a0a7ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="736" y="525" width="280" height="89" rx="22" fill="#171717" stroke="#41a892" stroke-width="2.5"/>
+<text x="876" y="562" font-size="22" font-weight="600">Outcome</text>
+<text x="876" y="591" font-size="20" fill="#cbd0d5">Done or owner UAT</text>
+</g></svg>

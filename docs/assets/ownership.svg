@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="816" viewBox="0 0 1080 816" role="img" aria-labelledby="title desc">
+<title id="title">I decide. The harness coordinates.</title>
+<desc id="desc">I choose the goal, approve the plan and start implementation. The harness coordinates a builder, independent review and applicable runtime testing. Findings return to the builder for fixes and repeated checks within the allowed attempts. Scope changes, exhausted limits and blockers stop progress and return to me for a decision. Passing review, applicable QA and final checks produces a checked change.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 8 5 L 1 9" fill="none" stroke="#a0a7ae" stroke-width="1.5"/></marker>
+<marker id="amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 8 5 L 1 9" fill="none" stroke="#d1ab6c" stroke-width="1.5"/></marker>
+<marker id="green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 8 5 L 1 9" fill="none" stroke="#41a892" stroke-width="1.5"/></marker>
+</defs>
+<rect width="1080" height="816" rx="12" fill="#171717"/>
+<g font-family="Arial, Helvetica, sans-serif" text-anchor="middle" fill="#eeeeee">
+<rect x="40" y="32" width="280" height="568" rx="0" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="8 6"/>
+<rect x="368" y="32" width="672" height="568" rx="0" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="8 6"/>
+<text x="180" y="70" font-size="18" fill="#aeb6be" font-weight="600">MY DECISIONS</text>
+<text x="704" y="70" font-size="18" fill="#aeb6be" font-weight="600">THE HARNESS</text>
+<rect x="60" y="144" width="240" height="148" rx="20" fill="none" stroke="#41a892" stroke-width="2"/>
+<text x="180" y="181" font-size="22" fill="#eeeeee" font-weight="600">Set the direction</text>
+<text x="180" y="218" font-size="19" fill="#cbd0d5" font-weight="400">Choose the goal</text>
+<text x="180" y="246" font-size="19" fill="#cbd0d5" font-weight="400">Approve the plan</text>
+<text x="180" y="274" font-size="19" fill="#cbd0d5" font-weight="400">Then start work</text>
+<text x="704" y="128" font-size="23" fill="#eeeeee" font-weight="600">Carry the work between agents</text>
+<rect x="392" y="180" width="192" height="112" rx="20" fill="none" stroke="#565b61" stroke-width="2"/>
+<text x="488" y="223" font-size="23" fill="#eeeeee" font-weight="600">Build</text>
+<text x="488" y="258" font-size="18" fill="#cbd0d5" font-weight="400">Executor</text>
+<rect x="608" y="180" width="192" height="112" rx="20" fill="none" stroke="#565b61" stroke-width="2"/>
+<text x="704" y="223" font-size="23" fill="#eeeeee" font-weight="600">Review</text>
+<text x="704" y="258" font-size="18" fill="#cbd0d5" font-weight="400">Independent</text>
+<rect x="824" y="180" width="192" height="112" rx="20" fill="none" stroke="#565b61" stroke-width="2"/>
+<text x="920" y="223" font-size="23" fill="#eeeeee" font-weight="600">Test</text>
+<text x="920" y="258" font-size="18" fill="#cbd0d5" font-weight="400">Runtime, if needed</text>
+<path d="M 302 236 H 390" fill="none" stroke="#a0a7ae" stroke-width="1.8" marker-end="url(#arrow)"/>
+<path d="M 584 236 H 606" fill="none" stroke="#a0a7ae" stroke-width="1.8" marker-end="url(#arrow)"/>
+<path d="M 800 236 H 822" fill="none" stroke="#a0a7ae" stroke-width="1.8" marker-end="url(#arrow)"/>
+<path d="M 704 293 V 322 H 920 V 293" fill="none" stroke="#a0a7ae" stroke-width="1.5"/>
+<path d="M 812 322 V 360 H 488 V 294" fill="none" stroke="#a0a7ae" stroke-width="1.8" marker-end="url(#arrow)"/>
+<text x="718" y="347" font-size="18" fill="#cbd0d5" font-weight="400">Fix and re-check</text>
+<rect x="392" y="404" width="624" height="116" rx="20" fill="none" stroke="#565b61" stroke-width="2"/>
+<text x="704" y="442" font-size="22" fill="#eeeeee" font-weight="600">Keep the work bounded</text>
+<text x="704" y="475" font-size="18" fill="#cbd0d5" font-weight="400">Remember findings · Count attempts · Share test resources</text>
+<rect x="60" y="400" width="240" height="124" rx="20" fill="none" stroke="#d1ab6c" stroke-width="2"/>
+<text x="180" y="438" font-size="20" fill="#eeeeee" font-weight="600">A decision is needed</text>
+<text x="180" y="473" font-size="17" fill="#cbd0d5" font-weight="400">Scope · limits · blockers</text>
+<path d="M 390 462 H 302" fill="none" stroke="#d1ab6c" stroke-width="1.8" marker-end="url(#amber)"/>
+<text x="345" y="447" font-size="15" fill="#d1ab6c" font-weight="400">Stop</text>
+<text x="704" y="563" font-size="18" fill="#cbd0d5" font-weight="400">Continue only with the required evidence</text>
+<path d="M 704 602 V 664" fill="none" stroke="#41a892" stroke-width="1.8" marker-end="url(#green)"/>
+<rect x="392" y="670" width="624" height="110" rx="20" fill="none" stroke="#41a892" stroke-width="2"/>
+<text x="704" y="710" font-size="24" fill="#eeeeee" font-weight="600">A checked change</text>
+<text x="704" y="746" font-size="20" fill="#cbd0d5" font-weight="400">Review + applicable QA + final checks</text>
+</g></svg>

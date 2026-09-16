@@ -5,6 +5,7 @@
 !/.gitignore
 !/AGENTS.md
 !/FILE_GUIDE.md
+!/MAINTENANCE.md
 !/README.md
 !/adapters/TRIP/adapter.md
 !/adapters/TRIP/implement.md
@@ -28,6 +29,13 @@
 !/adapters/gstack/roles/frontend_qa.toml
 !/adapters/gstack/roles/reviewer.toml
 !/adapters/gstack/roles/small_product_reviewer.toml
+!/docs/DESIGN.md
+!/docs/WALKTHROUGH.md
+!/docs/assets/layers.mmd
+!/docs/assets/layers.svg
+!/docs/assets/ownership.svg
+!/docs/assets/workflow.mmd
+!/docs/assets/workflow.svg
 !/export-manifest.json
 !/pytest.ini
 !/shared/claude/settings.json

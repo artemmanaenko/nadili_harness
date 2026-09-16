@@ -1,0 +1,21 @@
+flowchart TB
+    subgraph planning["01 · Plan"]
+        direction LR
+        P["Plan and review<br/>Scope and design"] --> O["Approve<br/>Owner decision"] --> S["Start<br/>Owner instruction"]
+    end
+    subgraph verification["02 · Build and verify"]
+        direction LR
+        B["Build<br/>Implementation"] --> R["Review<br/>Independent"] --> Q["Runtime QA<br/>Independent"]
+    end
+    subgraph integration["03 · Integrate"]
+        direction LR
+        C["Validate<br/>Final candidate"] --> M["Integrate<br/>Into main"] --> D["Outcome<br/>Done or owner UAT"]
+    end
+    planning --> verification
+    verification --> integration
+    style planning fill:transparent,stroke:#8b949e,stroke-dasharray:6 4
+    style verification fill:transparent,stroke:#8b949e,stroke-dasharray:6 4
+    style integration fill:transparent,stroke:#8b949e,stroke-dasharray:6 4
+    style O fill:transparent,stroke:#3b9a85,stroke-width:2px
+    style S fill:transparent,stroke:#3b9a85,stroke-width:2px
+    style D fill:transparent,stroke:#3b9a85,stroke-width:2px

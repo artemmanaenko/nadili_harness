@@ -1,0 +1,19 @@
+flowchart TB
+    subgraph harness["Harness layer"]
+        H["My delivery rules<br/>Stages, roles, checks and limits"]
+    end
+    subgraph adapters["Adapter layer"]
+        A["My adapters<br/>Map workflow methods to harness rules"]
+    end
+    subgraph workflows["Workflow layer"]
+        direction LR
+        G["gstack"] ~~~ T["TRIP"] ~~~ F["Other workflows"]
+    end
+    harness --> adapters
+    adapters --> workflows
+    style harness fill:transparent,stroke:#8b949e,stroke-dasharray:6 4
+    style adapters fill:transparent,stroke:#8b949e,stroke-dasharray:6 4
+    style workflows fill:transparent,stroke:#8b949e,stroke-dasharray:6 4
+    style G fill:transparent,stroke:#3b9a85,stroke-width:2px
+    style T fill:transparent,stroke:#8b949e
+    style F fill:transparent,stroke:#8b949e,stroke-dasharray:4 4
