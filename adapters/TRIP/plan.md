@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Planning procedure (Nadili)
 
 The TRIP implementation of `shared/process/SKILL.md` Stages 1–2. `/TRIP-1-plan` delegates here. This file is

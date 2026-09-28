@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Code review checklist (Nadili)
 
 The **single source of truth** for code-review criteria, severity classification, and the approval

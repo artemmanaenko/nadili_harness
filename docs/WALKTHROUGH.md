@@ -1,10 +1,3 @@
----
-document_profile: human-primary
-canonicality: derived
-owner: repository_owner
-review_budget: 1 minute
----
-
 # The fix that needed fixing
 
 [Back to overview](../README.md)

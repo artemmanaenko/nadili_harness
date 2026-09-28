@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Integration procedure (Nadili)
 
 The TRIP implementation of `shared/process/SKILL.md` Stage 7. `/TRIP-3-release` delegates here. This file is

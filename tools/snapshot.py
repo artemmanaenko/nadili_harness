@@ -261,6 +261,19 @@ def path_catalog(files: dict[str, str]) -> dict[str, str]:
     return catalog
 
 
+def strip_document_metadata(text: str) -> str:
+    """Remove visible document profiles while preserving native skill manifests and examples."""
+    header = re.match(r"\A---\n(.*?)\n---(?:\n|$)", text, re.DOTALL)
+    if header is None:
+        return text
+    fields = header.group(1)
+    if not re.search(r"^document_profile:", fields, re.MULTILINE):
+        return text
+    if re.search(r"^name:", fields, re.MULTILINE):
+        return text
+    return text[header.end() :].lstrip("\n")
+
+
 def relink(source: str, target: str, data: bytes, files: dict[str, str]) -> bytes:
     """Rewrite selected source references; preserve external/private runtime references."""
     catalog = path_catalog(files)
@@ -313,6 +326,8 @@ def relink(source: str, target: str, data: bytes, files: dict[str, str]) -> byte
     text = re.sub(pattern, lambda match: catalog[match.group(0)], text)
     text = re.sub(r"\x01(\d+)\x02", lambda match: saved[int(match.group(1))], text)
     text = text.replace("canonicality: canonical\n", "canonicality: derived\n")
+    if PurePosixPath(target).suffix == ".md":
+        text = strip_document_metadata(text)
     return text.encode()
 
 

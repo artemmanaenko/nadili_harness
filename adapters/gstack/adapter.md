@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # gstack adapter
 
 Active for **new** Nadili items when `AGENTS.md` selects `gstack`. Existing plans keep their

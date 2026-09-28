@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Manual code review procedure (Nadili)
 
 The **report-only fallback/audit path**. TRIP normally uses the Codex loop inside `adapters/TRIP/implement.md`.

@@ -1,10 +1,3 @@
----
-document_profile: human-primary
-canonicality: derived
-owner: repository_owner
-review_budget: 5 minutes
----
-
 # Harness file guide
 
 81 exported files and 3 synthetic test fixtures, each explained in one line.

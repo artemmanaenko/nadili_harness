@@ -1,10 +1,3 @@
----
-document_profile: human-primary
-canonicality: canonical
-owner: repository_owner
-review_budget: 3 minutes
----
-
 # Maintaining the portfolio snapshot
 
 [Back to the overview](README.md)
@@ -26,6 +19,8 @@ automatically. [The lock](snapshot.lock.json) records the revision and exported 
 application prompts, real evaluation data and session outputs are outside the export. Explicit
 documentation substitutions remove private pipeline details and internal evaluation module names.
 Their exact replacements are reviewable in the manifest; source drift stops sync.
+Sync also removes leading document-profile metadata from Markdown so GitHub does not render it as a table.
+Native skill manifests and metadata examples inside code blocks remain intact.
 Legacy ledger fixtures are small synthetic scenarios maintained in this portfolio, not exported
 from real work items. Test filename substitutions are pinned with expected occurrence counts.
 

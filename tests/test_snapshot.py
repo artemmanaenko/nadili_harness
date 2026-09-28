@@ -247,6 +247,20 @@ class PublicationTests(unittest.TestCase):
         self.assertIn("[external](https://example.invalid/)", result)
         self.assertIn("`docs/private.md`", result)
 
+    def test_document_profiles_disappear_but_skill_manifests_and_examples_survive(self) -> None:
+        profile = "---\ndocument_profile: human-primary\nowner: workflow\n---\n\n"
+        example = "```markdown\n" + profile + "# Example\n```\n"
+        body = "# Public guide\n\n" + example
+        files = {"scripts/guide.md": "shared/guide.md", "scripts/SKILL.md": "shared/SKILL.md"}
+        result = snapshot.relink(
+            "scripts/guide.md", "shared/guide.md", (profile + body).encode(), files
+        )
+        self.assertEqual(result.decode(), body)
+        skill = "---\nname: demo\ndescription: Demo skill\n---\n\n" + body
+        result = snapshot.relink("scripts/SKILL.md", "shared/SKILL.md", skill.encode(), files)
+        self.assertEqual(result.decode(), skill)
+        self.assertEqual(snapshot.strip_document_metadata(body), body)
+
     def test_counted_substitutions_stop_when_reference_count_drifts(self) -> None:
         source = self.source / "scripts/demo.py"
         source.write_text("# legacy-name legacy-name\n")

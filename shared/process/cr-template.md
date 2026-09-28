@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Code review output template (Nadili)
 
 The **single source of truth** for the markdown skeleton of a code review record. Every review

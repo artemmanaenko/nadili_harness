@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Nadili TRIP adapter: detailed legacy procedure
 
 `shared/process/SKILL.md` is the Nadili delivery authority. `AGENTS.md` selects the active adapter for new

@@ -2,19 +2,19 @@
   "files": {
     "adapters/TRIP/adapter.md": {
       "mode": "100644",
-      "sha256": "327e4cbaa1d0d0207ed09fc227ed91c2427c18a51c86f5ae93ca84503c7fa9fb"
+      "sha256": "9aa8b9715e61c76d0928ed6e6b3a47ce7610cd6ce804b11fc9c7f1b6a7e2cc79"
     },
     "adapters/TRIP/implement.md": {
       "mode": "100644",
-      "sha256": "667c55988704e31b377bb59ca0d71e2068b985664c335cb4bb3430e4df3fb3b0"
+      "sha256": "25399d4d8d40c5d92c8ad045fdbaba8ccde4c53f59460ed03662105d381521ef"
     },
     "adapters/TRIP/plan.md": {
       "mode": "100644",
-      "sha256": "e44f216476d429d6f5064f2d760deb8174a70c59871ac69961429b42840e37b3"
+      "sha256": "5239a1631b519c1eb4a649f7e2a5823b20516519d34e10c867cfd990441b77b4"
     },
     "adapters/TRIP/process.md": {
       "mode": "100644",
-      "sha256": "2341ca1bc1e101fae3a5407c494815a95c58c5cc63fce3cf0f1d8eae3a5b3907"
+      "sha256": "287227e8a8432f63971f14b425a7a7f2c641530f94ffd0fbce54d53f3781bbb9"
     },
     "adapters/TRIP/shims/TRIP-1-plan.SKILL.md": {
       "mode": "100644",
@@ -46,7 +46,7 @@
     },
     "adapters/gstack/adapter.md": {
       "mode": "100644",
-      "sha256": "52f4b72a558dd96fa31604dcaa8167adc10a0f45333a35bad7a1c5b4f58d78d8"
+      "sha256": "c1420e16b7dad45aea5116976d9b2f7bb1e422db055b3e2d607ec0264f58ffb4"
     },
     "adapters/gstack/config.toml": {
       "mode": "100644",
@@ -54,15 +54,15 @@
     },
     "adapters/gstack/orchestrator.md": {
       "mode": "100644",
-      "sha256": "76cc24ccaf0d5f6e8ede615a293e3306114d137639669c1b6553a426f579b3a5"
+      "sha256": "6272badcd0fbc3fe1ec3a31e34e471f9de48af51e7dbd4d35f04891d38453f28"
     },
     "adapters/gstack/proportional-workflows.md": {
       "mode": "100644",
-      "sha256": "a3fa27362ba37a1d80037d41f05e3c5b0e62978e8ad79a3c3805d197513a41c6"
+      "sha256": "0486b6abe181eb99d66f426fb65d75843a14149e45af85cddcd18d2f0e90e53d"
     },
     "adapters/gstack/review-cycle.md": {
       "mode": "100644",
-      "sha256": "ca0205302b282068123ee2a1d1e58298e7ad9c8a4a6717cd4ce3b3fc239c1958"
+      "sha256": "86f40bf3b462f235136b76072d29d776d9fb53e4f7f3132663e7ae3df0a3682d"
     },
     "adapters/gstack/roles/architect.toml": {
       "mode": "100644",
@@ -134,23 +134,23 @@
     },
     "shared/process/cr-template.md": {
       "mode": "100644",
-      "sha256": "0670112ae584ad9edf104f562541386b7e6a2ff5e35e9ec3e264d6948b3417c3"
+      "sha256": "aba2ce595748f59a1b5772967a568fb464e9c27dcbec531e6391072317eb7877"
     },
     "shared/process/gates.md": {
       "mode": "100644",
-      "sha256": "e0785cb1c1aaa58af86f12098ab90562eb8953da949a1624982119a12b5cd879"
+      "sha256": "c844bccd65a706e20e24665cc321068351ffb04a87bcac7ebbe3a58e84faa518"
     },
     "shared/process/integrate.md": {
       "mode": "100644",
-      "sha256": "49eb4d4e28457e182079a3e507fd6d1f9bd7e819a4df74a514f9e882620074ce"
+      "sha256": "2286b5acfe1fa6f4e0c22ec18d0712923acf707aed600659b21a0e2805553286"
     },
     "shared/process/review-checklist.md": {
       "mode": "100644",
-      "sha256": "4fd40816d42cf9a5a5ff0afa479b7fdc004a2edeb096674a8ce3b6c245b13e7c"
+      "sha256": "97b59456a70a01a23fc9f2afff764fff5a33b593a0a654c0eafa092c0aa0215d"
     },
     "shared/process/review.md": {
       "mode": "100644",
-      "sha256": "92eb89754d3d47e2345d09e212abe565ea9e7726e58d21e545bbe7f8b2d497c9"
+      "sha256": "66ed430ddf874a1533f445496e3367f6d16f143f3fa80e49a0b7adfbbb48dc31"
     },
     "shared/process/scripts/release-cleanup.sh": {
       "mode": "100755",
@@ -158,7 +158,7 @@
     },
     "shared/process/testing.md": {
       "mode": "100644",
-      "sha256": "c28afdc310b8c7bc05d393a718cc5c2e0c512a5ceba836328e71fda02359d842"
+      "sha256": "4152e0422acdf13d309e99c54785dcb7c36a32587520177ac6f807b3a98c0b4c"
     },
     "shared/scripts/changed_areas.py": {
       "mode": "100644",

@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Proportional workflows — v1
 
 Owns risk routing and role allocation for new gstack plans. The seven-stage process owns

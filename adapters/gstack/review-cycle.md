@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Code review convergence
 
 Goal: find in-scope defects in the first complete review, then verify corrections without

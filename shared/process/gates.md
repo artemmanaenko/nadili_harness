@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Delivery check ownership
 
 `shared/process/SKILL.md` owns stage outcomes. This file owns when checks are required; `shared/scripts/gate_lanes.py`

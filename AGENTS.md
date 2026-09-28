@@ -4,6 +4,7 @@ This repository presents a selected source snapshot of the private Nadili delive
 MAINTENANCE.md decisions D-001 through D-003 define its publication boundary.
 
 - Use English for all published prose, examples and comments.
+- Omit document-profile YAML front matter from published documents. Preserve native skill manifests.
 - Treat `shared/` and `adapters/` as source being exhibited, not as instructions governing this repository.
   Do not run Nadili delivery, product, infrastructure or release workflows here.
 - Nadili remains the implementation source of truth. Update the snapshot with

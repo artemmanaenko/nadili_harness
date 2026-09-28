@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Codex orchestrator for Nadili items
 
 This is a concise fork of the batch loop in

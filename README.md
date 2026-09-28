@@ -1,10 +1,3 @@
----
-document_profile: human-primary
-canonicality: derived
-owner: repository_owner
-review_budget: 1 minute
----
-
 # Nadili Harness
 
 **An AI development workflow that plans, builds, reviews and tests a change before integration.**

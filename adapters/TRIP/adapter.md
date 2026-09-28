@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # TRIP adapter
 
 This adapter remains available for existing TRIP items. Nadili's stable stage skills call this

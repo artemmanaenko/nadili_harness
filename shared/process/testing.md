@@ -1,9 +1,3 @@
----
-document_profile: agent-primary
-canonicality: derived
-owner: workflow
----
-
 # Testing and independent QA (Nadili)
 
 For item delivery, start with **Item verification record** below: Stages 5–6 require observed
