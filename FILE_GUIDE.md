@@ -110,7 +110,7 @@ Exported file references are rewritten; references to omitted private product fi
 
 ## Portfolio maintenance
 
-These files live at the repository root, outside the exported Nadili layer.
+These files belong to the portfolio, outside the exported Nadili layer.
 
 | File | Purpose |
 |---|---|
@@ -118,9 +118,8 @@ These files live at the repository root, outside the exported Nadili layer.
 | [docs/DESIGN.md](docs/DESIGN.md) | Visual division of responsibility between the owner and harness. |
 | [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) | Illustrative conversation between agents handling a fix. |
 | [docs/assets/](docs/assets/) | SVG diagrams and Mermaid source for the overview. |
-| [MAINTENANCE.md](MAINTENANCE.md) | Publication boundaries, update commands and checks. |
 | [FILE_GUIDE.md](FILE_GUIDE.md) | This concise file guide. |
-| [AGENTS.md](AGENTS.md) | Agent rules for working in the portfolio repository. |
+| [AGENTS.md](AGENTS.md) | Agent instructions for publication boundaries, synchronization and validation. |
 | [export-manifest.json](export-manifest.json) | Exact export allowlist, destinations and publication substitutions. |
 | [snapshot.lock.json](snapshot.lock.json) | Source revision, exported hashes and executable modes. |
 | [.gitignore](.gitignore) | Hides files outside the explicit publication allowlist from Git. |

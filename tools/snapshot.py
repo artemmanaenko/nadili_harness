@@ -23,7 +23,6 @@ ROOT_FILES = frozenset(
         "AGENTS.md",
         "README.md",
         "FILE_GUIDE.md",
-        "MAINTENANCE.md",
         "docs/DESIGN.md",
         "docs/WALKTHROUGH.md",
         "docs/assets/workflow.mmd",

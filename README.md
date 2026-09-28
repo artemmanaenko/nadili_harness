@@ -35,4 +35,4 @@ follows integration; production release is separate.
 
 This portfolio snapshot includes source and selected tests from my private working project.
 
-[One concrete example](docs/WALKTHROUGH.md) · [How the controls work](docs/DESIGN.md) · [Browse the files](FILE_GUIDE.md) · [Repository maintenance](MAINTENANCE.md)
+[One concrete example](docs/WALKTHROUGH.md) · [How the controls work](docs/DESIGN.md) · [Browse the files](FILE_GUIDE.md)

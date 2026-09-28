@@ -1,21 +1,59 @@
-# Nadili harness portfolio repository
+# Repository instructions
 
-This repository presents a selected source snapshot of the private Nadili delivery harness.
-MAINTENANCE.md decisions D-001 through D-003 define its publication boundary.
+Public portfolio of the Nadili delivery harness. Maintain the exhibit here;
+`shared/` and `adapters/` contain exhibited instructions, not this repository's workflow.
+Do not run product delivery, infrastructure or release workflows here.
 
-- Use English for all published prose, examples and comments.
-- Omit document-profile YAML front matter from published documents. Preserve native skill manifests.
-- Treat `shared/` and `adapters/` as source being exhibited, not as instructions governing this repository.
-  Do not run Nadili delivery, product, infrastructure or release workflows here.
-- Nadili remains the implementation source of truth. Update the snapshot with
-  `python3 tools/snapshot.py sync`; do not hand-edit imported files to conceal drift.
-- `export-manifest.json` is an exact allowlist. Its destinations own the portfolio layout; sync rewrites selected documentation references.
-  New entries require content review. Never replace
-  it with recursive directory copying or automatically include every newly tracked source file.
-- Never export session state, raw reviews, logs, `.env`, credentials, nested worktrees or Git
-  metadata. Do not follow references into private product code or operator configuration.
-- Maintain the default-deny `.gitignore` and staged publication check. Preserve local snapshot
-  edits and unrelated hooks; report conflicts instead of overwriting them.
-- Validate maintenance changes with `python3 -m unittest discover -s tests -v` and
-  `python3 tools/snapshot.py check`. Run the selected snapshot tests when imported code changes.
-- Do not stage, commit, push or publish without the owner's explicit request.
+## Where to edit
+
+- Edit portfolio copy, diagrams and maintenance tooling here. Use `FILE_GUIDE.md` to locate files.
+- For imported files, change and commit the private Nadili source first, then sync.
+  `export-manifest.json` owns the exact allowlist, destination paths and substitutions;
+  `snapshot.lock.json` records the source revision and exported hashes.
+- Do not hand-edit imported files or lock hashes to conceal drift. If sync reports local edits
+  or a substitution mismatch, reconcile the conflict; do not overwrite changes or weaken checks.
+
+## Publication rules
+
+- Publish English only. Keep document-profile metadata out of published prose;
+  preserve native skill manifests and fenced examples.
+- Export only reviewed files from committed source. Never copy source history, uncommitted or
+  ignored files, product runtime code, release procedures, application prompts, real evaluation
+  data, sessions, raw reviews, logs, credentials, `.env`, operator configuration or nested worktrees.
+- Keep the exact allowlist and default-deny `.gitignore`; never replace them with recursive copying.
+  Review new exports for private content. Missing private references are deliberate omissions,
+  not permission to import more files. Keep fixtures synthetic.
+- Register portfolio-owned additions in `ROOT_FILES` in `tools/snapshot.py`; imported additions
+  belong in `export-manifest.json`. Keep generated ignore rules consistent with both.
+- Preserve unrelated edits. Stage, commit and push only when requested by the owner.
+  Keep the publication hook enabled; never use `--no-verify`.
+
+## Setup and sync
+
+Requires Python 3.12+ and Git. Run commands from this repository's root.
+After cloning, install the publication hook, preserving any unrelated existing hooks:
+
+```sh
+python3 tools/snapshot.py install-hook
+```
+
+To refresh the snapshot from a committed source checkout:
+
+```sh
+python3 tools/snapshot.py sync --source /path/to/nadili
+```
+
+Without `--source`, sync uses the sibling `../nadili`. It does not modify the source repository
+or stage, commit or push. Read `tools/snapshot.py` and `tests/test_snapshot.py` when changing sync.
+
+## Verify changes
+
+- After edits: run `python3 tools/snapshot.py check` and `git diff HEAD --check`.
+- For maintenance tooling changes: also run `python3 -m unittest discover -s tests -v`.
+- For imported code changes: also run `python -m pytest -c pytest.ini` in a Python environment
+  with pytest, or use `../nadili/venv/bin/python`. These selected tests use disposable fixtures
+  and fake review transports; do not run live providers or start the product.
+- Before an authorized commit: run `python3 tools/snapshot.py check --staged` and
+  `git diff --cached --check`. The hook validates the index but does not replace content review.
+- Report changed files, checks and any unresolved failures. Do not declare completion with
+  failed publication checks or silently bypass them.
