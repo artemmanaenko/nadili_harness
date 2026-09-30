@@ -51,6 +51,9 @@
 !/shared/process/cr-template.md
 !/shared/process/gates.md
 !/shared/process/integrate.md
+!/shared/process/nadili-model-migration/SKILL.md
+!/shared/process/nadili-model-migration/agents/openai.yaml
+!/shared/process/nadili-model-migration/references/migration-record.md
 !/shared/process/review-checklist.md
 !/shared/process/review.md
 !/shared/process/scripts/release-cleanup.sh

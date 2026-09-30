@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nadili Model Migration"
+  short_description: "Qualify model changes with staged evals and prompt optimization"
+  default_prompt: "Use $nadili-model-migration to qualify this operation on the target model, reusing existing evaluation assets and recording only migration-specific decisions."

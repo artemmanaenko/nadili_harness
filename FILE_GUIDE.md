@@ -1,6 +1,6 @@
 # Harness file guide
 
-81 exported files and 3 synthetic test fixtures, each explained in one line.
+81 exported files, 3 synthetic test fixtures and a harness-owned model-migration skill, each explained below.
 Paths are relative to the portfolio root. `adapters/TRIP` and `adapters/gstack` separate
 workflow policies; `shared` contains common mechanisms. Executable tools stay together
 so tests can run, including the review runner used by the current gstack route.
@@ -107,6 +107,19 @@ Exported file references are rewritten; references to omitted private product fi
 | [shared/tests/unit/test_codex_code_review.py](shared/tests/unit/test_codex_code_review.py) | Tests review execution, failures, limits and result validation. |
 | [shared/tests/unit/test_codex_orchestration_budget.py](shared/tests/unit/test_codex_orchestration_budget.py) | Tests ledger limits, recovery and concurrent writes. |
 | [shared/tests/unit/test_gate_executor.py](shared/tests/unit/test_gate_executor.py) | Tests heavy-check locking and process termination. |
+
+## Model migration extension
+
+This skill is authored in the harness and belongs to the shared process module. It is not part
+of the imported snapshot; `tools/snapshot.py` preserves it as a portfolio-owned addition.
+Use it with an operation and target model to reuse the evaluation method instead of rewriting
+it for every upgrade. It does not change the consuming repository's delivery permissions.
+
+| File | Purpose |
+|---|---|
+| [shared/process/nadili-model-migration/SKILL.md](shared/process/nadili-model-migration/SKILL.md) | Generic baseline, replay, quality, prompt-experiment and rollout procedure. |
+| [shared/process/nadili-model-migration/agents/openai.yaml](shared/process/nadili-model-migration/agents/openai.yaml) | Skill discovery metadata and suggested invocation. |
+| [shared/process/nadili-model-migration/references/migration-record.md](shared/process/nadili-model-migration/references/migration-record.md) | Compact record of the operation-specific decisions and evidence. |
 
 ## Portfolio maintenance
 

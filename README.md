@@ -33,6 +33,11 @@ follows integration; production release is separate.
 - **Work stays bounded.** Risk determines review depth; recorded attempts have explicit limits.
 - **Agents share the machine safely.** Worktrees separate edits; execution leases coordinate heavy checks.
 
-This portfolio snapshot includes source and selected tests from my private working project.
+For recurring AI changes, the [model-migration skill](shared/process/nadili-model-migration/SKILL.md)
+provides a reusable baseline, paired evaluation, prompt experiment and rollout procedure. Supply
+the operation and target model; retain only the migration-specific decisions in its record.
+
+This portfolio includes source and selected tests from my private working project, plus that
+harness-owned process extension. The extension is not automatically installed in consuming projects.
 
 [One concrete example](docs/WALKTHROUGH.md) · [How the controls work](docs/DESIGN.md) · [Browse the files](FILE_GUIDE.md)
