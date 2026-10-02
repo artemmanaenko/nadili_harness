@@ -37,7 +37,10 @@ For recurring AI changes, the [model-migration skill](shared/process/nadili-mode
 provides a reusable baseline, paired evaluation, prompt experiment and rollout procedure. Supply
 the operation and target model; retain only the migration-specific decisions in its record.
 
-This portfolio includes source and selected tests from my private working project, plus that
-harness-owned process extension. The extension is not automatically installed in consuming projects.
+For public search discovery, the [SEO activation skill](shared/process/seo-launch/SKILL.md)
+uses the consuming product runbook to check the gate and submit Google, Bing and IndexNow.
+
+This portfolio includes source and selected tests from my private working project, plus two
+harness-owned skills. These skills are not automatically installed in consuming projects.
 
 [One concrete example](docs/WALKTHROUGH.md) · [How the controls work](docs/DESIGN.md) · [Browse the files](FILE_GUIDE.md)

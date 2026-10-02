@@ -38,6 +38,7 @@ ROOT_FILES = frozenset(
         "shared/process/nadili-model-migration/SKILL.md",
         "shared/process/nadili-model-migration/agents/openai.yaml",
         "shared/process/nadili-model-migration/references/migration-record.md",
+        "shared/process/seo-launch/SKILL.md",
         "shared/tests/fixtures/codex_orchestration/legacy-budget-overruns-v1.json",
         "shared/tests/fixtures/codex_orchestration/legacy-unknown-agent-history-v1.json",
         "shared/tests/fixtures/codex_orchestration/legacy-review-import-v1.json",
