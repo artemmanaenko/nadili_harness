@@ -1,6 +1,6 @@
 # Harness file guide
 
-81 exported files, 3 synthetic test fixtures and harness-owned skills, each explained below.
+81 exported files, 3 synthetic test fixtures and four harness-owned skills, each explained below.
 Paths are relative to the portfolio root. `adapters/TRIP` and `adapters/gstack` separate
 workflow policies; `shared` contains common mechanisms. Executable tools stay together
 so tests can run, including the review runner used by the current gstack route.
@@ -133,6 +133,22 @@ in the public skill. It is separate from delivery QA and does not automatically 
 | [shared/process/nadili-oncall/SKILL.md](shared/process/nadili-oncall/SKILL.md) | Browser diagnosis, action boundaries, private evidence handling and concise recommendations. |
 | [shared/process/nadili-oncall/agents/openai.yaml](shared/process/nadili-oncall/agents/openai.yaml) | Skill discovery metadata and suggested invocation. |
 | [shared/process/nadili-oncall/references/scenarios.md](shared/process/nadili-oncall/references/scenarios.md) | Symptom-specific checks for Sources, processing, Claims, triage, publication and access. |
+
+## Registered regression extension
+
+This harness-owned skill reads the consuming repository's private regression registry; it does
+not publish that registry or copy product scenarios into this portfolio. A named suite runs all
+of its registered cases. `full` runs every active registered suite, case and required variant and reports coverage
+gaps; a smoke run does not replace the complete registered regression. Like the other extensions,
+it is not automatically installed in consuming projects.
+
+| File | Purpose |
+|---|---|
+| [shared/process/nadili-regression/SKILL.md](shared/process/nadili-regression/SKILL.md) | Runs registered regression suites at the requested scope and reports coverage gaps. |
+| [shared/process/nadili-regression/agents/openai.yaml](shared/process/nadili-regression/agents/openai.yaml) | Skill discovery metadata and suggested invocation. |
+| [shared/process/nadili-regression/references/registry.md](shared/process/nadili-regression/references/registry.md) | Defines how to find and interpret a consumer-owned suite registry. |
+| [shared/process/nadili-regression/references/results.md](shared/process/nadili-regression/references/results.md) | Records complete run outcomes and uncovered cases without copying private suite data. |
+| [shared/process/nadili-regression/references/evaluation.md](shared/process/nadili-regression/references/evaluation.md) | Provides synthetic examples for evaluating skill selection and scope behavior. |
 
 ## Portfolio maintenance
 

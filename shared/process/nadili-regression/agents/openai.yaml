@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nadili Regression"
+  short_description: "Run named scenarios or a complete regression suite"
+  default_prompt: "Use $nadili-regression full in the consuming repository."

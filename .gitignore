@@ -57,6 +57,11 @@
 !/shared/process/nadili-oncall/SKILL.md
 !/shared/process/nadili-oncall/agents/openai.yaml
 !/shared/process/nadili-oncall/references/scenarios.md
+!/shared/process/nadili-regression/SKILL.md
+!/shared/process/nadili-regression/agents/openai.yaml
+!/shared/process/nadili-regression/references/evaluation.md
+!/shared/process/nadili-regression/references/registry.md
+!/shared/process/nadili-regression/references/results.md
 !/shared/process/review-checklist.md
 !/shared/process/review.md
 !/shared/process/scripts/release-cleanup.sh

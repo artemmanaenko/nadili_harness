@@ -44,7 +44,13 @@ For live product troubleshooting, the [Nadili OnCall skill](shared/process/nadil
 inspects the user's existing Chrome session and turns visible evidence into ordered recovery
 steps. It keeps private findings out of this repository and requires authorization for changes.
 
-This portfolio includes source and selected tests from my private working project, plus
+For registered regression suites, the [Nadili regression skill](shared/process/nadili-regression/SKILL.md)
+reads the consuming repository's private registry. A named suite runs every case it registers;
+`full` runs all active registered suites, cases and required variants, and reports coverage gaps.
+A smoke run never substitutes for the complete registered regression. The skill provides a
+reusable method and is not automatically installed in consuming projects.
+
+This portfolio includes source and selected tests from my private working project, plus four
 harness-owned skills. These skills are not automatically installed in consuming projects.
 
 [One concrete example](docs/WALKTHROUGH.md) · [How the controls work](docs/DESIGN.md) · [Browse the files](FILE_GUIDE.md)
