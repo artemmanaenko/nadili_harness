@@ -40,7 +40,11 @@ the operation and target model; retain only the migration-specific decisions in 
 For public search discovery, the [SEO activation skill](shared/process/seo-launch/SKILL.md)
 uses the consuming product runbook to check the gate and submit Google, Bing and IndexNow.
 
-This portfolio includes source and selected tests from my private working project, plus two
+For live product troubleshooting, the [Nadili OnCall skill](shared/process/nadili-oncall/SKILL.md)
+inspects the user's existing Chrome session and turns visible evidence into ordered recovery
+steps. It keeps private findings out of this repository and requires authorization for changes.
+
+This portfolio includes source and selected tests from my private working project, plus
 harness-owned skills. These skills are not automatically installed in consuming projects.
 
 [One concrete example](docs/WALKTHROUGH.md) · [How the controls work](docs/DESIGN.md) · [Browse the files](FILE_GUIDE.md)

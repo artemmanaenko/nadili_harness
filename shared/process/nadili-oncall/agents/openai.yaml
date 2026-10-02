@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nadili OnCall"
+  short_description: "Inspect Chrome and explain the next recovery steps"
+  default_prompt: "Use $nadili-oncall to inspect the problem in my existing Chrome session, explain the evidence and recommend the next steps."

@@ -1,6 +1,6 @@
 # Harness file guide
 
-81 exported files, 3 synthetic test fixtures and two harness-owned skills, each explained below.
+81 exported files, 3 synthetic test fixtures and harness-owned skills, each explained below.
 Paths are relative to the portfolio root. `adapters/TRIP` and `adapters/gstack` separate
 workflow policies; `shared` contains common mechanisms. Executable tools stay together
 so tests can run, including the review runner used by the current gstack route.
@@ -121,6 +121,18 @@ it for every upgrade. It does not change the consuming repository's delivery per
 | [shared/process/nadili-model-migration/agents/openai.yaml](shared/process/nadili-model-migration/agents/openai.yaml) | Skill discovery metadata and suggested invocation. |
 | [shared/process/nadili-model-migration/references/migration-record.md](shared/process/nadili-model-migration/references/migration-record.md) | Compact record of the operation-specific decisions and evidence. |
 | [shared/process/seo-launch/SKILL.md](shared/process/seo-launch/SKILL.md) | Activates public SEO discovery through the consuming product runbook and external search consoles. |
+
+## Nadili OnCall extension
+
+This harness-owned skill inspects a reported problem in the user's existing Chrome session.
+It provides evidence and next steps without storing installation details or private observations
+in the public skill. It is separate from delivery QA and does not automatically repair the product.
+
+| File | Purpose |
+|---|---|
+| [shared/process/nadili-oncall/SKILL.md](shared/process/nadili-oncall/SKILL.md) | Browser diagnosis, action boundaries, private evidence handling and concise recommendations. |
+| [shared/process/nadili-oncall/agents/openai.yaml](shared/process/nadili-oncall/agents/openai.yaml) | Skill discovery metadata and suggested invocation. |
+| [shared/process/nadili-oncall/references/scenarios.md](shared/process/nadili-oncall/references/scenarios.md) | Symptom-specific checks for Sources, processing, Claims, triage, publication and access. |
 
 ## Portfolio maintenance
 
