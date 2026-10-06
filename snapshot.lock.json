@@ -14,7 +14,7 @@
     },
     "adapters/TRIP/process.md": {
       "mode": "100644",
-      "sha256": "287227e8a8432f63971f14b425a7a7f2c641530f94ffd0fbce54d53f3781bbb9"
+      "sha256": "2f4144f50ed8bb9dbbc78d46cb2f9eeb59de7639eb3846fce32c702376e155ca"
     },
     "adapters/TRIP/shims/TRIP-1-plan.SKILL.md": {
       "mode": "100644",
@@ -54,7 +54,7 @@
     },
     "adapters/gstack/orchestrator.md": {
       "mode": "100644",
-      "sha256": "6272badcd0fbc3fe1ec3a31e34e471f9de48af51e7dbd4d35f04891d38453f28"
+      "sha256": "bd3caa7c1ff029d6ce4a4ff3fa417c3ca640ca918aa560837520986be1d3704d"
     },
     "adapters/gstack/proportional-workflows.md": {
       "mode": "100644",
@@ -130,7 +130,7 @@
     },
     "shared/process/SKILL.md": {
       "mode": "100644",
-      "sha256": "56a1b8ad9272af1c025d4f7aa21b998268df2566bf75291a0401340a7bf276c8"
+      "sha256": "0671183e1fe58f819c810f7781dda27df01757083cb9ee9c7478c518798b367c"
     },
     "shared/process/cr-template.md": {
       "mode": "100644",
@@ -325,6 +325,6 @@
       "sha256": "c9583e004aa58f220e76fbf427f6453262ebde9747f9e1ea83a71fa247c7744e"
     }
   },
-  "source_revision": "6d0f3fe10d470a51eeb0b0999dca0b9dfdad6e94",
+  "source_revision": "48e2b62853e60e41c8e8c0113e3fe6929594daa4",
   "version": 1
 }

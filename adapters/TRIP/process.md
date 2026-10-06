@@ -116,10 +116,11 @@ thread state, timeout handling, and output capture. Per-batch implementation eff
 allowed only under the criteria in `.claude/skills/codex-implement/SKILL.md`; it does not change
 the implementation model.
 
-Inside a Codex manager task, launch these authenticated networked CLI scripts through the current
-terminal permission-escalation mechanism and retain any yielded terminal session until completion.
-A sandbox or network denial is not a reason to fall back to a native child; retry the exact script
-through escalation or report the blocker.
+Inside a Codex manager task, follow the Runtime permissions contract in
+`shared/process/SKILL.md` when these authenticated networked CLI scripts need
+additional access. Retain any yielded terminal session until completion. A boundary block may
+permit escalation; an explicit review denial does not. Do not switch to a native child to bypass
+a denied action or this adapter's CLI transport requirement.
 
 ### Standing Codex-delegation authorization
 
@@ -139,10 +140,10 @@ It covers, explicitly and permanently:
 One grant, not one per call. A prompt asked at TRIP-1 review, again at TRIP-2 implementation and
 again at each batch is the same question answered once, already, here.
 
-A runtime approval dialog — the Codex CLI's own sandbox/network escalation, a harness permission
-prompt — is a **mechanism to satisfy**, never a decision to hand to the owner: escalate through it
-and continue. If escalation is genuinely refused by the runtime, that is a blocker to report in
-one line, not a question to ask.
+This standing grant authorizes delegation, not runtime access. Route any required technical
+approval through the effective runtime mechanism under the shared Runtime permissions contract;
+do not ask the owner to authorize delegation again. A denial or unavailable approval mechanism
+must be handled under that contract, with the action and reason reported.
 
 The scripts are safe to run autonomously by construction: reviews and `codex-ask` run
 `--sandbox read-only`; `codex-implement` runs `workspace-write` with no network and makes no

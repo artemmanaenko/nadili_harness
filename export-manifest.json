@@ -154,11 +154,6 @@
       "new": "`.codex/agents/executor.toml` is Luna/high/fast with a bounded skill catalog and settings\nthat restrict apps, web, image and nested-agent tools. It does not by itself prove a local-only\ntool surface: inherited MCP configuration and live runtime overrides must also be checked.\nBefore assigning work that requires local-only execution, verify the executor's effective tools\nand permissions. If external tools remain available or the restriction cannot be verified,\nstop that assignment and report the unmet prerequisite;"
     },
     {
-      "path": ".codex/orchestrator.md",
-      "old": "and request one-shot approval to retry only the failing `aside repl` or `aside exec` command outside\nthe workspace sandbox; do not create a broader reusable rule. If approved, retry the exact command\nonce. Fall back only when approval is declined or that retry still fails. The escalation changes",
-      "new": "and check the effective approval policy before requesting a retry outside the workspace sandbox.\nThe exported config sets `approval_policy = \"never\"`; under that policy, or when the runtime cannot\nsurface approval, report the blocked transport and use the headless fallback without requesting\nescalation. Only when the effective policy permits approval, request one-shot approval for the\nfailing `aside repl` or `aside exec` command; do not create a broader reusable rule. If approved,\nretry the exact command once. Fall back when approval is declined or the retry fails. If the\nfallback is unavailable, report the transport blocker. The escalation changes"
-    },
-    {
       "path": ".claude/skills/nadili-process/adapters/trip-process.md",
       "old": "Each codex skill ships its own `scripts/{start,resume,reset,show}.sh` wrappers that pin the right\n`STATE_DIR` and delegate to the shared `codex-plan-review` implementation.",
       "new": "In the private Nadili repository, each codex skill has its own wrappers named `start.sh`,\n`resume.sh`, `reset.sh` and `show.sh` in that skill's scripts subdirectory. These wrappers pin the\nright `STATE_DIR` and delegate to the shared `codex-plan-review` implementation. They are excluded\nfrom this portfolio snapshot."

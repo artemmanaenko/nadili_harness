@@ -177,13 +177,14 @@ when to perform the operation. If it fails, report the failure once and continue
 
 When gstack `browse` reports `ASIDE_NOT_RUNNING` but the owner says Aside is open, treat a blocked
 loopback connection as a likely cause before choosing the headless fallback. Report the mismatch
-and check the effective approval policy before requesting a retry outside the workspace sandbox.
-The exported config sets `approval_policy = "never"`; under that policy, or when the runtime cannot
-surface approval, report the blocked transport and use the headless fallback without requesting
-escalation. Only when the effective policy permits approval, request one-shot approval for the
-failing `aside repl` or `aside exec` command; do not create a broader reusable rule. If approved,
-retry the exact command once. Fall back when approval is declined or the retry fails. If the
-fallback is unavailable, report the transport blocker. The escalation changes
+and check the effective runtime permissions under the Runtime permissions contract in
+`shared/process/SKILL.md`. If interactive approval is available, submit only the
+failing `aside repl` or `aside exec` command for one-shot approval through that mechanism;
+do not create a broader reusable rule or add a separate owner confirmation. If approved, retry
+the exact command once. When approval is unavailable or the retry fails, use an authorized
+headless fallback. After an explicit denial, use that fallback only if it is materially safer
+and respects the denial's rationale; otherwise report the transport blocker under the shared
+contract. Handle review timeouts under that contract before retrying. The escalation changes
 transport only: the browse skill's target, tab-isolation, credential, and mutation-consent rules
 remain binding.
 

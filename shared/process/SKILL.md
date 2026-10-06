@@ -41,6 +41,38 @@ happens, not every internal call. Name the exact skill; distinguish **running** 
 workflow from **using its criteria**. If the stage uses only a Nadili skill, name that
 instead. Do not imply that a vendor workflow ran when only its rubric was read.
 
+## Runtime permissions
+
+The owner authorizes the work; the runtime controls whether a specific tool action may execute.
+Before requesting additional access, confirm that the action fits the existing task and standing
+authorization. Runtime approval, including Auto-review, cannot authorize a scope change, a budget
+increase, an implementation start or a release that still requires the owner's decision.
+
+For authorized work, use the runtime's effective permission mechanism without a separate owner
+confirmation. If interactive approvals are available, submit the exact action, target and needed
+access for manual or automatic review; continue only after approval. Observe the active runtime
+settings rather than assuming the repository's defaults apply. Approval covers only the action
+and lifetime granted by the runtime. App-level consent still goes to the owner when required.
+
+Distinguish permission outcomes:
+
+- A sandbox or network block without a review decision permits a bounded escalation when the
+  effective policy supports it. With no interactive approval mechanism, including `never`, use
+  an authorized path within existing permissions or report the specific blocker.
+- An explicit denial requires respecting its rationale. Do not bypass it through another attempt,
+  indirect execution or another adapter. Continue only with a
+  materially safer authorized alternative; otherwise report the action and reason and ask for
+  the required owner decision through the supported override or approval mechanism. An override
+  still follows runtime policy; it does not guarantee approval.
+- A timeout or unavailable reviewer is not approval or evidence that an action is unsafe. Check
+  execution status before retrying; retry only under the runtime's supported retry policy and
+  existing attempt limits. If status or permission remains unknown, report the blocker.
+
+Keep authorized independent work moving while an owner decision is pending. Do not enable Full
+Access, broaden permission rules or replace reviewer policy merely to get past a block. Adapters
+map this contract to their environment; they do not create another permission policy or assume
+Auto-review availability, free billing or quota exemption.
+
 ## Hotfix entry
 
 `shared/skills/nadili-hotfix/SKILL.md` owns entry for an existing patch or a concrete bounded
