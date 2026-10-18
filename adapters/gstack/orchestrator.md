@@ -4,14 +4,21 @@ This is a concise fork of the batch loop in
 `adapters/TRIP/implement.md` and the review loop in
 `.claude/skills/codex-code-review/`. It replaces their CLI transport for **gstack items**;
 the Nadili process still owns stage gates and outcomes. The current owner chat is the
-orchestrator with its chosen model and mode. Do not spawn or pin another orchestrator.
-`adapters/gstack/roles/executor.toml` is Luna/high/fast with a bounded skill catalog and settings
+orchestrator with its chosen model and mode. Sol/medium is the usage-conscious default for
+ordinary coordination; use Astra for a named hard cross-stage decision. Do not spawn or pin
+another orchestrator.
+`adapters/gstack/roles/code_explorer.toml` is read-only Luna/high/standard for one narrow codebase
+question. First do bounded local discovery; dispatch it only when a separate scoped answer helps.
+Reserve its thread and pass the question, likely paths and output bound, never full history.
+`adapters/gstack/roles/executor.toml` is Luna/high/standard with a bounded skill catalog and settings
 that restrict apps, web, image and nested-agent tools. It does not by itself prove a local-only
 tool surface: inherited MCP configuration and live runtime overrides must also be checked.
 Before assigning work that requires local-only execution, verify the executor's effective tools
 and permissions. If external tools remain available or the restriction cannot be verified,
 stop that assignment and report the unmet prerequisite;
-`adapters/gstack/roles/reviewer.toml` is Sol/high/standard for product/design/DX plan review;
+`adapters/gstack/roles/standard_plan_reviewer.toml` is Sol/medium/standard for new proportional
+Standard plan review. `adapters/gstack/roles/reviewer.toml` remains Sol/high/standard for High-risk
+and approved in-flight or legacy plan review;
 `adapters/gstack/roles/small_product_reviewer.toml` is Sol/medium/standard for Small CEO/product review;
 `adapters/gstack/roles/architect.toml` is Astra/medium/standard only for architecture.
 At most two subagents may be open, excluding this chat.
@@ -28,17 +35,25 @@ All review-entry/commit/integration gates, independent QA and action limits belo
 ## QA dispatch contract
 
 Stages 5/6 use native fresh-context agents (`fork_turns="none"`), never implicit model
-inheritance. Backend QA uses `adapters/gstack/roles/backend_qa.toml`: Sol/medium/default tier.
-Frontend QA uses `adapters/gstack/roles/frontend_qa.toml`: Terra/medium/default tier.
-Select before dispatch using the actual QA risks: backend concurrency, migrations, recovery
-after failure or complex authorization requires Sol/high; frontend complex multi-step journeys
-with authorization or ambiguous state transitions requires Sol/medium. Record the concrete
-reason in the handoff and ledger; the item's route label alone does not upgrade every QA stage.
+inheritance. A simple QA scenario has one bounded behavior, an explicit acceptance and failure
+oracle, a disposable runtime, and observable results. For new gstack items, route such backend
+and frontend scenarios to `adapters/gstack/roles/focused_backend_qa.toml` or
+`adapters/gstack/roles/focused_frontend_qa.toml`: Luna/high/default tier. The tester remains independent
+of implementation and must observe the real runtime or browser. Small alone does not imply
+simple QA.
 
-For an elevated setting, use a fresh default agent with explicit `model` and
-`reasoning_effort`, passing the corresponding QA role's complete developer contract. Do not
-try to override a named role's pinned TOML settings. Use the same explicit-default fallback
-if a newly added named role is unavailable in the active session. Record the selected model
+Both QA surfaces use Sol for named security, workspace isolation, durable data, replay,
+concurrency, recovery, or ambiguous authorization/state risks. Backend QA uses
+`adapters/gstack/roles/backend_qa.toml`: Sol/medium/default tier; named hard reasoning risks use
+Sol/high. Frontend QA also uses `adapters/gstack/roles/frontend_qa.toml`: Sol/medium/default tier for
+complex multi-step journeys, authorization, or ambiguous state transitions.
+When uncertainty prevents a simple oracle, select Sol. Record the specific risk and selected
+model/effort in the handoff and ledger. An approved in-flight item's recorded routing and QA
+evidence remain authoritative; do not silently migrate it to a focused Luna role.
+
+For an elevated setting or unavailable named role, use a fresh default agent with explicit
+`model` and `reasoning_effort`, passing the selected QA role's complete developer contract. Do
+not try to override a named role's pinned TOML settings. Record the selected model
 and effort at ledger start; never substitute the coordinator's model implicitly.
 
 Supply spec/plan paths, frozen candidate, bounded scope, runtime/test identity and resource
@@ -46,8 +61,9 @@ limits, evidence output paths and remaining budget; do not fork implementation h
 QA derives independent scenarios and observes runtime evidence; it does not repeat full code
 review or add permanent tests. Permit disposable probes and test data, but no product edits,
 commits, deployment or nested agents. Keep tool output and the evidence report bounded.
-Retest on the same selected model at medium effort, limited to defects and affected scenarios;
-if a named hard-reasoning risk remains, retain backend high and record why. A failed check or
+Retest only defects and affected scenarios. A focused Luna retest retains high effort to match
+its pinned role; Sol retests use medium unless a named hard backend risk still requires high.
+Record the actual model and effort in the ledger. A failed check or
 environment setup alone never triggers model escalation or a new full QA pass. Every invocation
 still consumes the existing budget; these settings grant no extra attempts.
 
@@ -64,8 +80,11 @@ review pass, or running a full fast gate, create and reserve an item-local ledge
 `venv/bin/python shared/scripts/codex_orchestration_budget.py`. The ledger enforces existing model
 action ceilings at `start`, not provider token billing. Native tools can bypass repository
 code; agents MUST NOT bypass preflight. Reservation records overages with exit-zero alerts,
-but that is not dispatch permission. Review/thread/live-eval overages require explicit owner
-`amend`; `recover` cannot waive them. Stop with remaining findings and evidence at exhaustion.
+but that is not dispatch permission. Non-review thread/live-eval overages require explicit owner
+`amend`; `recover` cannot waive them. Code-review reservations (`review`, `review-refresh`)
+record attempts without round/thread budget ceilings, including on existing ledgers. They
+remain dispatchable while other model ceilings are exceeded. Preserve lifecycle, freshness,
+retry diagnosis, repeated-failure recovery and rollback freeze. Stop non-review work at exhaustion.
 Never reset the ledger, rename scope to evade its limit or silently expand targets.
 Use opaque action IDs and concise technical
 reasons only: never place user queries, source text, credentials or secret paths in the ledger.
@@ -107,9 +126,9 @@ venv/bin/python shared/scripts/codex_orchestration_budget.py reconcile --worktre
   --attempt-id luna-implementation-attempt-2 --result-code recovered-after-restart
 ```
 
-Defaults are eight distinct agent threads, 12 live provider calls, two formal review rounds per
-scope, six full fast gates, and two final integration checks. These are ceilings, not required run
-counts. Existing item ledgers retain their recorded limits. Reusing a thread does not consume a
+Defaults are eight non-review agent threads, 12 live provider calls, six full fast gates,
+and two final integration checks. Code-review round counts are telemetry; the legacy
+`max_review_rounds_per_scope` field is retained for schema compatibility and does not enforce a limit. Non-review ceilings are not required run counts. Existing item ledgers retain their recorded limits. Reusing a thread does not consume a
 new thread, but still needs a self-contained brief and must not turn into open-ended exploration.
 `fork_turns="all"`, unbounded history, a non-fresh reviewer and missing static evidence produce
 ledger alerts; default to `fork_turns="none"`, and add a written exception for bounded history of
@@ -145,7 +164,7 @@ accounting. Explicit full local/release qualification is fresh and unreduced.
 Two matching terminal failure signatures or a new v2 overage creates a blocking trigger. Before
 an expensive retry, run a bounded targeted check and record `recover --trigger-id ...
 --next-attempt-id ... --targeted-check-result passed --next-action ...`. The authorization is
-one-shot and cannot reset limits or waive required gates. Model overages cannot be recovered
+one-shot and cannot reset limits or waive required gates. Non-review model overages cannot be recovered
 until the owner explicitly raises the applicable limit; gate overages remain recoverable.
 Reports distinguish reserved-without-
 attempt, terminal and running attempts and use interval unions for overlapping activity. Legacy
@@ -166,6 +185,12 @@ once; routine subagent resumes and internal tool calls need no new announcement.
 
 ### Current task title transitions
 
+For temporary local lease contention, follow
+[autonomous resource-wait continuation](../.claude/skills/nadili-process/resource-wait.md).
+Register/reuse the same-chat ten-minute heartbeat before yielding and preserve the pending
+checkpoint. Repeated `resource_busy` alone is no owner-only stop; real approval/budget stops
+and failed scheduler/retained-wait fallback retain their ordinary title and delivery routing.
+
 For gstack work, call Codex's current-task title operation when active planning begins, before
 presenting a plan or another owner-only stop, on entry to an external or technical Blocked state,
 when owner action resolves and work resumes, after integration when the item routes to
@@ -177,14 +202,9 @@ when to perform the operation. If it fails, report the failure once and continue
 
 When gstack `browse` reports `ASIDE_NOT_RUNNING` but the owner says Aside is open, treat a blocked
 loopback connection as a likely cause before choosing the headless fallback. Report the mismatch
-and check the effective runtime permissions under the Runtime permissions contract in
-`shared/process/SKILL.md`. If interactive approval is available, submit only the
-failing `aside repl` or `aside exec` command for one-shot approval through that mechanism;
-do not create a broader reusable rule or add a separate owner confirmation. If approved, retry
-the exact command once. When approval is unavailable or the retry fails, use an authorized
-headless fallback. After an explicit denial, use that fallback only if it is materially safer
-and respects the denial's rationale; otherwise report the transport blocker under the shared
-contract. Handle review timeouts under that contract before retrying. The escalation changes
+and request one-shot approval to retry only the failing `aside repl` or `aside exec` command outside
+the workspace sandbox; do not create a broader reusable rule. If approved, retry the exact command
+once. Fall back only when approval is declined or that retry still fails. The escalation changes
 transport only: the browse skill's target, tab-isolation, credential, and mutation-consent rules
 remain binding.
 
@@ -222,8 +242,10 @@ Stage 4 affected checks, architecture sync and formal review under the shared ga
 ## Independent review loop
 
 Proportional items use the canonical route matrix: separate `small_product_reviewer`
-(Sol/medium) for applicable Small CEO/product review, coordinator design/DX lenses for Small, one
-combined independent plan reviewer for Standard, risk-justified specialists for High-risk.
+(Sol/medium) for applicable Small CEO/product review, coordinator design/DX lenses for Small,
+one combined independent `standard_plan_reviewer` (Sol/medium) for new Standard plans, and
+`reviewer` (Sol/high) for High-risk and approved in-flight or legacy plans. Dispatch only risk-justified
+specialists for High-risk.
 Record architecture no-impact instead of dispatching an architect without a decision.
 For legacy items dispatch a fresh-context (`fork_turns="none"`) native `reviewer` for each applicable Stage 1
 product/design/DX lens and a fresh `architect` for Stage 2. Keep one thread per plan-review lens
@@ -251,9 +273,24 @@ The runner resolves and initializes the canonical Git-common-dir ledger from `--
 available only for isolated external test ledgers; relative paths and resolved repository paths
 are rejected. The runner reserves and
 records one attempt per actual process launch with ignored user config, read-only sandbox, no
-persistence, apps, MCP, web or useful skill catalog, and validates structured output. The first
-review is a fresh Sol/xhigh exhaustive pass over the complete candidate. It must trace changed
-behavior through direct consumers, persistence, concurrency, failure paths and public projections,
+persistence, apps, MCP, web or useful skill catalog, and validates structured output. The default
+first review is a fresh Sol/xhigh exhaustive pass over the complete candidate. For an explicitly
+requested test-only initial pass, add `--test-only-initial`; the runner independently checks the
+actual base-to-index diff and permits only one existing modified `tests/unit/test_*.py` module plus
+at most two changes to this item's `hotfix.md` or `verification.md`, with a 16 KiB patch ceiling.
+The existing test module must differ from its base version only by one added standalone
+`assert isinstance(name, builtin_type)` line. The runner's closed type set is `bool`, `bytes`,
+`complex`, `dict`, `float`, `frozenset`, `int`, `list`, `set`, `str`, and `tuple`.
+Renames, deletions, new tests, production/tooling paths, test harnesses, shared fixtures, config,
+imports, changed expectations, assertion removals and all other paths fail closed. The current and
+base test module must not import or execute scripts, use pytest fixtures, or contain harness markers;
+the test file and item documents must remain regular non-executable files. The reviewer still checks
+assertion quality, omissions or weakened expectations, the tested source contract and its direct
+consumers, and all ten checklist sections. Unchanged production files do not justify approval.
+This flag is first-review-only and cannot be
+combined with `--exhaustive-reason`. NAD-417's route implementation itself remains exhaustive.
+Normal exhaustive review must trace changed behavior through direct consumers, persistence,
+concurrency, failure paths and public projections,
 and return evidence for every canonical checklist section instead of stopping at the first finding.
 
 The runner owns correction packets and completed-review history; follow
@@ -289,12 +326,12 @@ evidence. Do not fix P3. After a code fix, run affected checks under `gates.md`;
 for changed shared contracts, dependencies, gate/runtime configuration or uncertain impact.
 Rebase alone is not a reason for a separate broad review-entry run. For code corrections, use the
 cycle contract's scenario handoff and generated packet. The structured
-result preserves IDs, classifies each finding's origin and accounts for every prior blocker. Stop at the approved review allowance (default two
-passes); no third dispatch without explicit owner amendment, even if a fix needs verification.
-Different model, reviewer,
-scope label or disguised closure/QA review does not renew the allowance. Repeated incorrect
-findings need evidence, not silent dismissal. `NEEDS_REWORK` means reassess within the remaining
-allowance; scope changes and exhausted budgets require the owner.
+result preserves IDs, classifies each finding's origin and accounts for every prior blocker.
+Continue Stage 4 code-review corrections until APPROVED without ledger round/thread ceilings
+or owner budget amendments. Preserve every attempt and verdict. Repeated incorrect findings
+need evidence, not silent dismissal. `NEEDS_REWORK` means reassess the implementation;
+product scope changes and exhausted non-review budgets still require the owner.
+Plan/architecture review retains its approved allowance.
 
 After Stage 4 code review converges, the orchestrator writes
 `docs/3-code-review/CR_NAD-<ID>.md` from

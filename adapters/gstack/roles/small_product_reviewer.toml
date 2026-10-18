@@ -1,6 +1,6 @@
 name = "small_product_reviewer"
 description = "Fresh-context, report-only CEO/product plan reviewer for proportional Small items."
-model = "gpt-6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 service_tier = "default"
 sandbox_mode = "read-only"

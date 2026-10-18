@@ -27,9 +27,8 @@ capabilities and reasons, includes rename/deletion paths, and falls back broadly
 TRIP-2 may finish only after the verification record, affected checks and code review are complete.
 `shared/process/gates.md` owns shared check scheduling and reuse for both adapters.
 Stage 7 runs the affected gate on the final integration commit. This stage does not publish a
-version or tag. Production qualification belongs to one frozen candidate coordinated by
-`scripts/release-candidate.sh`; ticket integration does not publish a candidate or run the full
-qualification suite.
+version or tag. The previous production process is removed by NAD-488. Ticket integration
+does not deploy or run the full standalone validation suite.
 
 ---
 
@@ -383,8 +382,9 @@ target).
        docs/work/<ID>/plan.md "$GATE_SUMMARY"
    ```
    → back to 2.
-6. **Review allowance** — follow `shared/process/SKILL.md`: default two passes. Resolve P0/P1/P2 within the
-   allowance or stop for an explicit owner amendment; retries do not reset the budget.
+6. **Code-review convergence** — follow `shared/process/SKILL.md`: resolve P0/P1/P2 and refresh review until
+   APPROVED. No code-review round/thread budget ceiling or owner amendment applies. Retain
+   every attempt, retry diagnosis and repeated-failure recovery.
 
 ### Synthesize
 

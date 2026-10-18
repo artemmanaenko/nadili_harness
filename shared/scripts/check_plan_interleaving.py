@@ -79,7 +79,7 @@ def _script_glob_matches(path: str, pattern: str) -> bool:
 
 def _resources_for_path(path: str) -> set[str]:
     resources: set[str] = set()
-    if _script_glob_matches(path, "scripts/release*") or path == "scripts/next_version.py":
+    if _script_glob_matches(path, "scripts/release*"):
         resources.update({"published-tags", "version-reservations"})
     if _script_glob_matches(path, "scripts/gate*") or path == "scripts/lib/gate-slots.sh":
         resources.add("heavy-lease")

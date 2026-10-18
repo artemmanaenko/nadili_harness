@@ -142,6 +142,9 @@ Order is ticket → worktree → draft:
 
    A plan without this line is incomplete. The release procedure (TRIP-3 Step 13) applies it
    verbatim; it is decided here, once, and not re-argued at release time.
+6. Write the mandatory `**Workflow route:** Small|Standard|High-risk` and `**Route reason:**`
+   lines, classified under `adapters/gstack/proportional-workflows.md`. TRIP items keep their TRIP roles; the
+   route records the risk, and a Claude Code coordinator selects the implementer model from it.
 
 For a new item, freeze the spec in the worktree after the issue gives it an ID. Everything after
 this — drafting, Codex review, architecture review, revisions, the commit — happens in that worktree.
@@ -158,6 +161,8 @@ Legacy plans stay in `docs/1-plans/` — do not migrate them.
 **Linear**: NAD-XXX
 Release type: patch
 Verification: UAT — [what the owner will look at] | Done — [why no human check applies]
+**Workflow route:** Small | Standard | High-risk
+**Route reason:** [the risk floor from proportional-workflows.md that applies]
 Backend QA: applicable/not applicable — [behavior, isolated runtime, expected outcome and evidence; or reason]
 Frontend QA: applicable/not applicable — [browser journey, local app, viewport scope, expected outcome and evidence; or reason. Admin CRM-only defaults to desktop unless responsive CSS, shared layout/UI, or explicit acceptance requires more]
 

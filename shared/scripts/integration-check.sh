@@ -80,35 +80,38 @@ run_integration_check() {
   fi
 
   local selector_args=("--integration" "${scope[@]}")
-  local details capabilities_output admin_specs_output paths_output web_scope
-  if ! details=$("$python_bin" "$root/scripts/gate_lanes.py" "${selector_args[@]}"); then
-    printf '%s\n' "$details" >&2
+  local routing_records record_kind record_value web_scope=all
+  # One routing computation per gate run; every leg consumes this single result (spec R7.2).
+  if ! routing_records=$("$python_bin" "$root/scripts/gate_lanes.py" "${selector_args[@]}" --shell); then
     return 1
   fi
-  capabilities_output=$("$python_bin" "$root/scripts/gate_lanes.py" \
-    "${selector_args[@]}" --capabilities-only)
-  admin_specs_output=$("$python_bin" "$root/scripts/gate_lanes.py" \
-    "${selector_args[@]}" --admin-specs-only)
-  paths_output=$("$python_bin" "$root/scripts/gate_lanes.py" \
-    "${selector_args[@]}" --paths-only)
-  web_scope=$("$python_bin" "$root/scripts/gate_lanes.py" \
-    "${selector_args[@]}" --web-scope-only)
 
   # Expansions of these use the ${arr[@]+...} form below: /bin/bash on macOS is 3.2, where
   # "${arr[@]}" on an empty array is an unbound-variable error under `set -u`.
-  local -a capabilities=() admin_specs=() resolved_paths=()
-  while IFS= read -r capability; do
-    [[ -n "$capability" ]] && capabilities+=("$capability")
-  done <<< "$capabilities_output"
-  while IFS= read -r spec; do
-    [[ -n "$spec" ]] && admin_specs+=("$spec")
-  done <<< "$admin_specs_output"
-  while IFS= read -r path; do
-    [[ -n "$path" ]] && resolved_paths+=("$path")
-  done <<< "$paths_output"
+  local -a capabilities=() admin_specs=() resolved_paths=() summary=()
+  local -a unit_tests=() postgres_tests=() shell_files=()
+  while IFS=$'\t' read -r record_kind record_value; do
+    case "$record_kind" in
+      '') ;;
+      summary) summary+=("$record_value") ;;
+      capability) capabilities+=("$record_value") ;;
+      path) resolved_paths+=("$record_value") ;;
+      web-scope) web_scope="$record_value" ;;
+      admin-spec) admin_specs+=("$record_value") ;;
+      unit-test) unit_tests+=("$record_value") ;;
+      postgres-test) postgres_tests+=("$record_value") ;;
+      shell) shell_files+=("$record_value") ;;
+      *)
+        printf 'integration-check: unknown routing record %s\n' "$record_kind" >&2
+        return 1
+        ;;
+    esac
+  done <<< "$routing_records"
 
   printf 'integration scope: %s\n' "${scope[*]}"
-  printf '%s\n' "$details"
+  for record_value in ${summary[@]+"${summary[@]}"}; do
+    printf '%s\n' "$record_value"
+  done
 
   if [[ "${scope[0]}" == "--base" ]]; then
     for capability in ${capabilities[@]+"${capabilities[@]}"}; do
@@ -122,14 +125,20 @@ run_integration_check() {
   fi
 
   if [[ "$dry_run" == true ]]; then
-    while IFS= read -r capability; do
-      [[ -n "$capability" ]] && printf 'would-run: %s\n' "$capability"
-    done <<< "$capabilities_output"
+    for record_value in ${capabilities[@]+"${capabilities[@]}"}; do
+      printf 'would-run: %s\n' "$record_value"
+    done
     for spec in ${admin_specs[@]+"${admin_specs[@]}"}; do
       printf 'would-run-admin-spec: %s\n' "$spec"
     done
     for path in ${resolved_paths[@]+"${resolved_paths[@]}"}; do
       printf 'would-run-path: %s\n' "$path"
+    done
+    for path in ${unit_tests[@]+"${unit_tests[@]}"}; do
+      printf 'would-run-unit-test: %s\n' "$path"
+    done
+    for path in ${postgres_tests[@]+"${postgres_tests[@]}"}; do
+      printf 'would-run-postgres-test: %s\n' "$path"
     done
     return 0
   fi
@@ -145,13 +154,14 @@ run_integration_check() {
     "${document_command[@]}"
   fi
 
-  local cheap_done=false web_build_selected=false web_build_done=false
-  local capability selected_capability spec
-  local -a cheap_command=() admin_command=()
+  local cheap_done=false web_build_selected=false web_build_done=false backend_selected=false
+  local capability selected_capability spec postgres_plan postgres_ran
+  local -a cheap_command=() admin_command=() postgres_plan_arguments=() postgres_group=()
   # gate_lanes.py is the single ordering authority: deterministic client, contract and web
   # checks must fail before the disposable PostgreSQL integration entrypoint.
   for capability in ${capabilities[@]+"${capabilities[@]}"}; do
     [[ "$capability" == web-build ]] && web_build_selected=true
+    [[ "$capability" == backend-integration ]] && backend_selected=true
   done
   for capability in ${capabilities[@]+"${capabilities[@]}"}; do
     case "$capability" in
@@ -163,12 +173,15 @@ run_integration_check() {
         bash scripts/public-web-visual.sh
         bash scripts/portability-smoke.sh
         ;;
-      gate-tooling|python-static|python-unit|web-static|web-unit|harness)
+      gate-tooling|python-static|python-unit|web-static|web-unit|harness|selected-tests|host-bootstrap-check|shell-syntax)
         if [[ "$cheap_done" == false ]]; then
           cheap_command=(bash scripts/pre-commit-fast.sh --integration --web-scope "$web_scope")
           for selected_capability in ${capabilities[@]+"${capabilities[@]}"}; do
             case "$selected_capability" in
               gate-tooling|python-static|python-unit|harness)
+                cheap_command+=(--capability "$selected_capability")
+                ;;
+              selected-tests|host-bootstrap-check|shell-syntax)
                 cheap_command+=(--capability "$selected_capability")
                 ;;
               web-static|web-unit)
@@ -181,6 +194,12 @@ run_integration_check() {
                 ;;
             esac
           done
+          for path in ${unit_tests[@]+"${unit_tests[@]}"}; do
+            cheap_command+=(--selected-test "$path")
+          done
+          for path in ${shell_files[@]+"${shell_files[@]}"}; do
+            cheap_command+=(--shell-file "$path")
+          done
           if ((${#cheap_command[@]} > 2)); then
             "${cheap_command[@]}"
             [[ "$web_build_selected" == true ]] && web_build_done=true
@@ -190,6 +209,23 @@ run_integration_check() {
         ;;
       backend-integration)
         bash scripts/backend.sh check-postgres
+        ;;
+      selected-postgres-tests)
+        # Only cases the full PostgreSQL lane does not execute (by tree, then marker); a
+        # partition resolved empty starts no container.
+        postgres_plan_arguments=(plan-postgres)
+        [[ "$backend_selected" == true ]] && postgres_plan_arguments+=(--backend-integration)
+        postgres_plan=$("$python_bin" "$root/scripts/gate_test_selection.py" \
+          "${postgres_plan_arguments[@]}" -- ${postgres_tests[@]+"${postgres_tests[@]}"})
+        postgres_ran=false
+        while IFS=$'\t' read -r -a postgres_group; do
+          ((${#postgres_group[@]} >= 2)) || continue
+          bash scripts/test-postgres.sh "${postgres_group[@]:1}" -m "${postgres_group[0]}"
+          postgres_ran=true
+        done <<< "$postgres_plan"
+        if [[ "$postgres_ran" == false ]]; then
+          printf 'integration-check: selected PostgreSQL partition is empty; no container started\n'
+        fi
         ;;
       client-python)
         bash scripts/client.sh

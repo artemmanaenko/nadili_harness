@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import codecs
 import fcntl
+import io
 import json
+import math
 import os
 import secrets
+import selectors
 import shutil
 import signal
 import socket
@@ -15,16 +19,20 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import BinaryIO
 
 LEASE_FILENAME = "heavy.lock"
 HOLDER_FILENAME = "heavy-holder.json"
 DEFAULT_WAIT_SECONDS = 900.0
+DEFAULT_RUN_SECONDS = 3600.0
+RUN_TIMEOUT_EXIT_STATUS = 124
 WAIT_POLL_SECONDS = 5.0
 PROCESS_CLEANUP_SECONDS = 5.0
 RESOURCE_BUSY_EXIT_STATUS = 75
@@ -44,6 +52,10 @@ class GateInterrupted(GateExecutorError):
     """Raised when the lease owner is interrupted while supervising a child."""
 
 
+class GateRunTimedOut(GateExecutorError):
+    """Raised when a supervised command exceeds its finite execution deadline."""
+
+
 @dataclass(frozen=True, slots=True)
 class LeaseIdentity:
     """Non-secret holder information written for blocked operators."""
@@ -51,6 +63,7 @@ class LeaseIdentity:
     token: str
     owner_pid: int
     label: str
+    run_deadline_monotonic: float | None = None
 
 
 @dataclass(slots=True)
@@ -91,14 +104,19 @@ class HeavyLease:
 
         if self._released:
             return
-        try:
-            _remove_holder_if_owned(self.holder_path, self.identity.token)
-            fcntl.flock(self.file_descriptor, fcntl.LOCK_UN)
-        except OSError as exc:
-            raise GateExecutorError("heavy lease could not be released") from exc
-        finally:
-            os.close(self.file_descriptor)
-            self._released = True
+        with _defer_cleanup_interrupts():
+            # Cleanup must complete before even closing our descriptor: an interrupt during
+            # uncertain termination is not permission to admit a competing heavy run.
+            _cleanup_lease_groups(self.lock_root, self.identity.token)
+            try:
+                _remove_holder_if_owned(self.holder_path, self.identity.token)
+                fcntl.flock(self.file_descriptor, fcntl.LOCK_UN)
+                _remove_group_registry(self.lock_root, self.identity.token)
+            except OSError as exc:
+                raise GateExecutorError("heavy lease could not be released") from exc
+            finally:
+                os.close(self.file_descriptor)
+                self._released = True
 
 
 def _validate_lock_root(lock_root: Path) -> Path:
@@ -182,6 +200,8 @@ def _write_holder(holder_path: Path, identity: LeaseIdentity) -> None:
         "started_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "token": identity.token,
     }
+    if identity.run_deadline_monotonic is not None:
+        payload["run_deadline_monotonic"] = identity.run_deadline_monotonic
     try:
         file_descriptor, temporary_name = tempfile.mkstemp(
             prefix=".heavy-holder.", dir=holder_path.parent, text=True
@@ -258,9 +278,11 @@ def acquire_lease(
     label: str,
     timeout: float = DEFAULT_WAIT_SECONDS,
     owner_pid: int | None = None,
+    run_timeout: float = DEFAULT_RUN_SECONDS,
 ) -> HeavyLease:
     """Acquire the shared lease with a bounded, diagnosable wait."""
 
+    _validate_run_timeout(run_timeout)
     if timeout < 0:
         raise GateExecutorError("heavy lease timeout must be non-negative")
     lock_path, file_descriptor = _open_lock(lock_root)
@@ -271,6 +293,7 @@ def acquire_lease(
             token=secrets.token_hex(16),
             owner_pid=os.getpid() if owner_pid is None else owner_pid,
             label=label,
+            run_deadline_monotonic=time.monotonic() + run_timeout,
         )
         _write_holder(holder_path, identity)
         return HeavyLease(lock_root, lock_path, holder_path, file_descriptor, identity)
@@ -397,12 +420,74 @@ def release_inherited_lease(lock_root: Path, file_descriptor: int, token: str) -
     """Release a descriptor acquired by the shell bridge after its resources are stopped."""
 
     _lock_path, holder_path = _descriptor_matches_lock(file_descriptor, lock_root)
-    _verify_descriptor_holds_lock(file_descriptor, _lock_path)
-    _remove_holder_if_owned(holder_path, token)
+    inherited_lease_fd(
+        {"NADILI_GATE_LEASE_FD": str(file_descriptor), "NADILI_GATE_LEASE_TOKEN": token},
+        lock_root,
+    )
+    with _defer_cleanup_interrupts():
+        _cleanup_lease_groups(lock_root, token)
+        _remove_holder_if_owned(holder_path, token)
+        try:
+            fcntl.flock(file_descriptor, fcntl.LOCK_UN)
+            _remove_group_registry(lock_root, token)
+        except OSError as exc:
+            raise GateExecutorError("heavy lease could not be released") from exc
+
+
+def _lease_group_registry(lock_root: Path, token: str) -> Path:
+    if len(token) != 32 or any(char not in "0123456789abcdef" for char in token):
+        raise GateExecutorError("heavy lease group token is invalid")
+    return lock_root / "heavy-process-groups" / token
+
+
+@contextmanager
+def _registry_guard(registry: Path) -> Iterator[None]:
+    _lock_path, descriptor = _open_lock(registry)
     try:
-        fcntl.flock(file_descriptor, fcntl.LOCK_UN)
-    except OSError as exc:
-        raise GateExecutorError("heavy lease could not be released") from exc
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(descriptor)
+
+
+def _exec_registered_command(command: Sequence[str]) -> int:
+    """Register this session before exec; a closing owner refuses new heavy work."""
+
+    lock_root = Path(os.environ["NADILI_GATE_LEASE_ROOT"])
+    inherited_lease_fd(os.environ, lock_root)
+    registry = _lease_group_registry(lock_root, os.environ["NADILI_GATE_LEASE_TOKEN"])
+    with _registry_guard(registry):
+        # The owner can finish between our first verification and taking this guard.
+        # Recheck authority here; stale wrappers must never resurrect group admission.
+        inherited_lease_fd(os.environ, lock_root)
+        if (registry / "closing").exists():
+            raise GateExecutorError("heavy lease is closing")
+        (registry / f"group-{os.getpgrp()}").touch(mode=0o600)
+    os.execvpe(command[0], list(command), dict(os.environ))  # noqa: S606 — explicit supervised argv.
+    return 2
+
+
+def _cleanup_lease_groups(lock_root: Path, token: str) -> None:
+    """Close group admission, then stop every registered group before owner unlock."""
+
+    registry = _lease_group_registry(lock_root, token)
+    with _registry_guard(registry):
+        (registry / "closing").touch(mode=0o600)
+        groups = list(registry.glob("group-*"))
+    for entry in groups:
+        raw_pid = entry.name.removeprefix("group-")
+        if not raw_pid.isdecimal() or int(raw_pid) <= 1 or int(raw_pid) == os.getpgrp():
+            raise GateExecutorError("heavy lease process group identity is invalid")
+        _terminate_group(int(raw_pid))
+        entry.unlink(missing_ok=True)
+
+
+def _remove_group_registry(lock_root: Path, token: str) -> None:
+    # Keep the closed-admission marker until the holder and OS lock are gone.
+    registry = _lease_group_registry(lock_root, token)
+    (registry / "closing").unlink(missing_ok=True)
+    (registry / LEASE_FILENAME).unlink(missing_ok=True)
+    registry.rmdir()
 
 
 def _signal_group(process_group: int, signal_number: int) -> bool:
@@ -422,24 +507,62 @@ def _signal_group(process_group: int, signal_number: int) -> bool:
     return True
 
 
-def _terminate_process_group(process: subprocess.Popen[str]) -> None:
-    process_group = process.pid
+def _group_has_live_members(process_group: int) -> bool:
+    """Zombies cannot run or retain descriptors; distinguish them from live group members."""
+
+    try:
+        snapshot = subprocess.run(  # noqa: S603 — fixed ps argv; no arguments or environment read.
+            ["/bin/ps", "-axo", "pgid=,stat="],
+            check=True,
+            text=True,
+            capture_output=True,
+            timeout=PROCESS_CLEANUP_SECONDS,
+        )
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise GateExecutorError("heavy process group status is unavailable") from exc
+    for line in snapshot.stdout.splitlines():
+        fields = line.split()
+        if len(fields) == 2 and fields[0] == str(process_group) and not fields[1].startswith("Z"):
+            return True
+    return False
+
+
+def _terminate_group(process_group: int, process: subprocess.Popen[str] | None = None) -> None:
     if not _signal_group(process_group, signal.SIGTERM):
         return
     deadline = time.monotonic() + PROCESS_CLEANUP_SECONDS
     while time.monotonic() < deadline:
         if not _signal_group(process_group, 0):
             return
-        if process.poll() is None:
+        if process is not None and process.poll() is None:
             with suppress(subprocess.TimeoutExpired):
                 process.wait(timeout=0.05)
         time.sleep(0.05)
     if not _signal_group(process_group, signal.SIGKILL):
         return
-    try:
-        process.wait(timeout=PROCESS_CLEANUP_SECONDS)
-    except subprocess.TimeoutExpired as exc:
-        raise GateExecutorError("heavy child process group did not stop") from exc
+    if process is not None:
+        try:
+            process.wait(timeout=PROCESS_CLEANUP_SECONDS)
+        except subprocess.TimeoutExpired as exc:
+            raise GateExecutorError("heavy child process group did not stop") from exc
+    notice_deadline = time.monotonic() + PROCESS_CLEANUP_SECONDS
+    while _signal_group(process_group, 0):
+        try:
+            if not _group_has_live_members(process_group):
+                return
+        except GateExecutorError:
+            # Unknown state is not proof of termination. Keep the lease and retry observation.
+            pass
+        if time.monotonic() >= notice_deadline:
+            print(
+                "process_cleanup_pending: retaining heavy lease until group stops", file=sys.stderr
+            )
+            notice_deadline = time.monotonic() + 60
+        time.sleep(0.1)
+
+
+def _terminate_process_group(process: subprocess.Popen[str]) -> None:
+    _terminate_group(process.pid, process)
 
 
 #: Set once a signal has been delivered. Cleanup on the interrupt path touches process groups and
@@ -457,6 +580,29 @@ def _interrupt_handler(_signal_number: int, _frame: object) -> None:
 
 
 @contextmanager
+def _defer_cleanup_interrupts() -> Iterator[None]:
+    """Keep ownership through termination confirmation, then report the deferred interrupt."""
+
+    received = False
+
+    def defer(_signal_number: int, _frame: object) -> None:
+        nonlocal received
+        global _interrupted
+        received = True
+        _interrupted = True
+
+    previous_int = signal.signal(signal.SIGINT, defer)
+    previous_term = signal.signal(signal.SIGTERM, defer)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, previous_int)
+        signal.signal(signal.SIGTERM, previous_term)
+    if received:
+        raise GateInterrupted("heavy lease owner interrupted after cleanup")
+
+
+@contextmanager
 def _interrupt_handlers() -> Iterator[None]:
     previous_int = signal.signal(signal.SIGINT, _interrupt_handler)
     previous_term = signal.signal(signal.SIGTERM, _interrupt_handler)
@@ -467,6 +613,84 @@ def _interrupt_handlers() -> Iterator[None]:
         signal.signal(signal.SIGTERM, previous_term)
 
 
+def _validate_run_timeout(run_timeout: float) -> None:
+    if not math.isfinite(run_timeout) or run_timeout <= 0:
+        raise GateExecutorError("heavy command timeout must be positive finite seconds")
+
+
+def _supervision_deadline(
+    environment: Mapping[str, str], pass_fds: Sequence[int], run_timeout: float | None
+) -> tuple[float, Path | None]:
+    now = time.monotonic()
+    deadline = now + (DEFAULT_RUN_SECONDS if run_timeout is None else run_timeout)
+    if not pass_fds or "NADILI_GATE_LEASE_ROOT" not in environment:
+        return deadline, None
+    lock_root = Path(environment["NADILI_GATE_LEASE_ROOT"])
+    inherited_fd = inherited_lease_fd(environment, lock_root)
+    if inherited_fd is None or inherited_fd not in pass_fds:
+        return deadline, None
+    registry = _lease_group_registry(lock_root, environment["NADILI_GATE_LEASE_TOKEN"])
+    holder = json.loads((lock_root / HOLDER_FILENAME).read_bytes())
+    stored: object = holder.get("run_deadline_monotonic") if isinstance(holder, dict) else None
+    if stored is None:  # Legacy holders and the shell acquire-fd bridge have no deadline.
+        return deadline, registry
+    if isinstance(stored, bool) or not isinstance(stored, (float, int)):
+        raise GateExecutorError("heavy lease execution deadline is invalid")
+    if not math.isfinite(stored) or stored <= 0:
+        raise GateExecutorError("heavy lease execution deadline is invalid")
+    return (float(stored) if run_timeout is None else min(deadline, stored)), registry
+
+
+def _stream_supervised_output(
+    process: subprocess.Popen[str],
+    output_callback: Callable[[str], None],
+    deadline: float,
+) -> int:
+    """Poll output without letting a silent or unterminated line bypass the deadline."""
+
+    stream = process.stdout
+    if not isinstance(stream, io.TextIOWrapper):
+        raise GateExecutorError("supervised output stream is unavailable")
+    decoder = io.IncrementalNewlineDecoder(
+        codecs.getincrementaldecoder(stream.encoding)(errors=stream.errors or "strict"),
+        translate=True,
+    )
+    pending = ""
+    cleaned = False
+    drain_deadline = deadline
+    with selectors.DefaultSelector() as selector:
+        selector.register(stream, selectors.EVENT_READ)
+        while True:
+            if process.poll() is not None and not cleaned:
+                # A background helper may retain stdout after the command finishes.
+                # Stop it before draining, instead of waiting indefinitely for EOF.
+                _terminate_process_group(process)
+                cleaned = True
+                drain_deadline = time.monotonic() + PROCESS_CLEANUP_SECONDS
+            remaining = (drain_deadline if cleaned else deadline) - time.monotonic()
+            if remaining <= 0 and not cleaned:
+                raise GateRunTimedOut("run_timeout: heavy command exceeded its execution deadline")
+            readable = selector.select(timeout=0 if cleaned else min(0.1, remaining))
+            if cleaned and remaining <= 0:
+                raise GateExecutorError("heavy command output did not drain after exit")
+            if cleaned and not readable:
+                pending += decoder.decode(b"", final=True)
+                if pending:
+                    output_callback(pending)
+                return process.wait()
+            if not readable:
+                continue
+            chunk = os.read(stream.fileno(), 65536)
+            pending += decoder.decode(chunk, final=not chunk)
+            while "\n" in pending:
+                line, pending = pending.split("\n", 1)
+                output_callback(line + "\n")
+            if not chunk:
+                if pending:
+                    output_callback(pending)
+                return process.wait(timeout=max(0.0, deadline - time.monotonic()))
+
+
 def run_supervised(
     command: Sequence[str],
     *,
@@ -474,17 +698,35 @@ def run_supervised(
     environment: Mapping[str, str] | None = None,
     pass_fds: Sequence[int] = (),
     output_callback: Callable[[str], None] | None = None,
+    run_timeout: float | None = None,
 ) -> int:
     """Run one process group and stop descendants before returning to the lease owner."""
 
+    if run_timeout is not None:
+        _validate_run_timeout(run_timeout)
     if not command:
         raise GateExecutorError("heavy command must not be empty")
+    child_environment = dict(os.environ if environment is None else environment)
+    deadline, registry = _supervision_deadline(child_environment, pass_fds, run_timeout)
+    if deadline <= time.monotonic():
+        print("run_timeout: heavy command exceeded its execution deadline", file=sys.stderr)
+        return RUN_TIMEOUT_EXIT_STATUS
+    child_command = list(command)
+    if registry is not None:
+        child_command = [
+            sys.executable,
+            str(Path(__file__).resolve()),
+            "exec-registered",
+            "--",
+            *command,
+        ]
     stdout: int | None = subprocess.PIPE if output_callback is not None else None
+    timed_out = False
     with _interrupt_handlers():
         process = subprocess.Popen(  # noqa: S603 — explicit argv, never a shell.
-            list(command),
+            child_command,
             cwd=cwd,
-            env=dict(environment) if environment is not None else None,
+            env=child_environment,
             stdout=stdout,
             stderr=subprocess.STDOUT if output_callback is not None else None,
             text=output_callback is not None,
@@ -493,10 +735,12 @@ def run_supervised(
             pass_fds=tuple(sorted(set(pass_fds))),
         )
         try:
-            if output_callback is not None and process.stdout is not None:
-                for line in process.stdout:
-                    output_callback(line)
-            return process.wait()
+            if output_callback is not None:
+                return _stream_supervised_output(process, output_callback, deadline)
+            return process.wait(timeout=max(0.0, deadline - time.monotonic()))
+        except (subprocess.TimeoutExpired, GateRunTimedOut):
+            timed_out = True
+            return RUN_TIMEOUT_EXIT_STATUS
         except (GateInterrupted, KeyboardInterrupt):
             _terminate_process_group(process)
             raise
@@ -508,6 +752,11 @@ def run_supervised(
                 # that owns a browser, server, or Docker helper. Keep the lease until that group
                 # is gone.
                 _terminate_process_group(process)
+            if registry is not None:
+                with _registry_guard(registry):
+                    (registry / f"group-{process.pid}").unlink(missing_ok=True)
+            if timed_out:
+                print("run_timeout: heavy command exceeded its execution deadline", file=sys.stderr)
 
 
 def run_with_lease(
@@ -516,9 +765,12 @@ def run_with_lease(
     lock_root: Path,
     label: str,
     timeout: float,
+    run_timeout: float | None = None,
 ) -> int:
     """Acquire one lease, supervise one process group, then release after cleanup."""
 
+    if run_timeout is not None:
+        _validate_run_timeout(run_timeout)
     started = time.monotonic()
     metrics_path = (
         Path(os.environ["NADILI_GATE_REHEARSAL_METRICS_FILE"])
@@ -542,15 +794,22 @@ def run_with_lease(
                     command,
                     environment=lease_environment,
                     pass_fds=(inherited_fd,),
+                    run_timeout=run_timeout,
                 )
             else:
-                with acquire_lease(lock_root, label=label, timeout=timeout) as lease:
+                with acquire_lease(
+                    lock_root,
+                    label=label,
+                    timeout=timeout,
+                    run_timeout=DEFAULT_RUN_SECONDS if run_timeout is None else run_timeout,
+                ) as lease:
                     acquired = time.monotonic()
                     environment = lease.child_environment(lease_environment)
                     exit_status = run_supervised(
                         command,
                         environment=environment,
                         pass_fds=(lease.file_descriptor,),
+                        run_timeout=run_timeout,
                     )
         return exit_status
     finally:
@@ -605,6 +864,15 @@ def _memory_rss_for_processes(process_ids: Sequence[int]) -> int:
     return sum(rows[pid][1] for pid in descendants if pid in rows)
 
 
+def _drain_stderr(stream: BinaryIO, captured: bytearray) -> None:
+    """Consume stderr continuously while retaining only a bounded diagnostic tail."""
+
+    while chunk := stream.read(65536):
+        captured.extend(chunk)
+        del captured[:-MAX_HOLDER_BYTES]
+
+
+@_interrupt_handlers()
 def run_rehearsal(
     command: Sequence[str],
     *,
@@ -612,9 +880,12 @@ def run_rehearsal(
     output_path: Path,
     runs: int,
     timeout: float,
+    run_timeout: float | None = None,
 ) -> int:
     """Run at most three bounded contenders and record queue, timing and RSS evidence."""
 
+    if run_timeout is not None:
+        _validate_run_timeout(run_timeout)
     if not 1 <= runs <= MAX_REHEARSAL_RUNS:
         raise GateExecutorError(f"rehearsal runs must be between 1 and {MAX_REHEARSAL_RUNS}")
     started = time.monotonic()
@@ -622,6 +893,7 @@ def run_rehearsal(
     metrics_directory = output_path.parent / f".{output_path.name}.metrics"
     metrics_directory.mkdir(mode=0o700, exist_ok=True)
     children: list[subprocess.Popen[bytes]] = []
+    stderr_captures: list[tuple[threading.Thread, bytearray]] = []
     try:
         for index in range(runs):
             child = subprocess.Popen(  # noqa: S603 — re-enters this fixed executor CLI.
@@ -633,6 +905,7 @@ def run_rehearsal(
                     str(lock_root),
                     "--timeout",
                     str(timeout),
+                    *(["--run-timeout", str(run_timeout)] if run_timeout is not None else []),
                     "--label",
                     f"rehearsal-{index + 1}",
                     "--",
@@ -651,6 +924,14 @@ def run_rehearsal(
                 stderr=subprocess.PIPE,
             )
             children.append(child)
+            if child.stderr is None:
+                raise GateExecutorError("rehearsal stderr stream is unavailable")
+            captured = bytearray()
+            reader = threading.Thread(
+                target=_drain_stderr, args=(child.stderr, captured), daemon=True
+            )
+            reader.start()
+            stderr_captures.append((reader, captured))
         peak_rss_kib = 0
         while any(child.poll() is None for child in children):
             peak_rss_kib = max(
@@ -660,11 +941,18 @@ def run_rehearsal(
         statuses = []
         failures: list[str] = []
         for index, child in enumerate(children):
-            stderr_output = child.stderr.read() if child.stderr is not None else b""
             statuses.append(child.wait())
+            reader, captured = stderr_captures[index]
+            reader.join(timeout=PROCESS_CLEANUP_SECONDS)
+            if reader.is_alive():
+                raise GateExecutorError("rehearsal stderr did not drain after exit")
+            stderr_output = bytes(captured)
             if statuses[-1] != 0:
                 reason = stderr_output.decode("utf-8", errors="replace").strip().splitlines()
-                failures.append(f"attempt {index + 1}: {reason[-1] if reason else 'no output'}")
+                diagnostic = reason[-1] if reason else "no output"
+                if statuses[-1] == RUN_TIMEOUT_EXIT_STATUS:
+                    diagnostic = "run_timeout: heavy command exceeded its execution deadline"
+                failures.append(f"attempt {index + 1}: {diagnostic}")
     except (KeyboardInterrupt, GateInterrupted):
         for child in children:
             if child.poll() is None:
@@ -731,12 +1019,21 @@ def _parser() -> argparse.ArgumentParser:
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--lock-root", type=Path, required=True)
         command_parser.add_argument("--timeout", type=float, default=DEFAULT_WAIT_SECONDS)
+        command_parser.add_argument(
+            "--run-timeout",
+            type=float,
+            default=None,
+            help="positive finite command lifetime; default inherits owner or uses 3600 seconds",
+        )
         if command == "run":
             command_parser.add_argument("--label", required=True)
         else:
             command_parser.add_argument("--output", type=Path, required=True)
             command_parser.add_argument("--runs", type=int, default=MAX_REHEARSAL_RUNS)
         command_parser.add_argument("command_args", nargs=argparse.REMAINDER)
+
+    registered = subparsers.add_parser("exec-registered", help=argparse.SUPPRESS)
+    registered.add_argument("command_args", nargs=argparse.REMAINDER)
 
     inherited = subparsers.add_parser("verify-inherited")
     inherited.add_argument("--lock-root", type=Path, required=True)
@@ -767,12 +1064,15 @@ def _command_args(args: argparse.Namespace) -> list[str]:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.command == "exec-registered":
+            return _exec_registered_command(_command_args(args))
         if args.command == "run":
             return run_with_lease(
                 _command_args(args),
                 lock_root=args.lock_root,
                 label=args.label,
                 timeout=args.timeout,
+                run_timeout=args.run_timeout,
             )
         if args.command == "rehearse":
             return run_rehearsal(
@@ -781,6 +1081,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 output_path=args.output,
                 runs=args.runs,
                 timeout=args.timeout,
+                run_timeout=args.run_timeout,
             )
         if args.command == "verify-inherited":
             inherited_lease_fd(os.environ, args.lock_root)
@@ -804,6 +1105,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             release_inherited_lease(args.lock_root, args.fd, args.token)
             return 0
         raise GateExecutorError("unknown gate executor command")
+    except GateRunTimedOut as exc:
+        print(str(exc), file=sys.stderr)
+        return RUN_TIMEOUT_EXIT_STATUS
     except ResourceBusyError as exc:
         print(str(exc), file=sys.stderr)
         return RESOURCE_BUSY_EXIT_STATUS

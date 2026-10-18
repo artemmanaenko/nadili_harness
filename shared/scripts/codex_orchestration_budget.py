@@ -51,7 +51,7 @@ V1_RESERVATION_FIELDS = (
     "static_check",
     "alerts",
 )
-USAGE_SOURCES = {"codex_event_stream", "unavailable", "native_agent", "app"}
+USAGE_SOURCES = {"codex_event_stream", "claude_event_stream", "unavailable", "native_agent", "app"}
 USAGE_CHANNELS = {"stdout_jsonl", "native_agent", "app", "permission_reviewer", "human"}
 CATEGORY_VALUES = {"model", "gate", "lease", "permission", "human"}
 GIT_BINARY = shutil.which("git")
@@ -1072,9 +1072,13 @@ def _reserve(state: dict[str, object], args: argparse.Namespace) -> tuple[bool, 
     agents = cast(dict[str, Agent], state["agents"])
     kind = args.kind
     agent = cast(str | None, value.get("agent_id"))
+    if (
+        kind == "agent"
+        and agent not in _budgeted_agent_ids(state)
+        and len(_budgeted_agent_ids(state)) >= limits["max_agent_threads"]
+    ):
+        alerts.append("agent thread target exceeded")
     if kind in {"agent", "review", "review-refresh"} and agent is not None and agent not in agents:
-        if len(usage["agent_ids"]) >= limits["max_agent_threads"]:
-            alerts.append("agent thread target exceeded")
         agents[agent] = {
             "fork_turns": cast(str, value["fork_turns"]),
             "history_exception": cast(str | None, value.get("history_exception")),
@@ -1083,8 +1087,6 @@ def _reserve(state: dict[str, object], args: argparse.Namespace) -> tuple[bool, 
     if kind == "review":
         scope = cast(str, value["scope"])
         current = usage["review_rounds_by_scope"].get(scope, 0)
-        if current + 1 > limits["max_review_rounds_per_scope"]:
-            alerts.append(f"review round target exceeded for scope: {scope}")
         usage["review_rounds_by_scope"][scope] = current + 1
     elif kind == "live-eval":
         if usage["live_eval_calls"] + args.units > limits["max_live_eval_calls"]:
@@ -1116,13 +1118,34 @@ def _reserve(state: dict[str, object], args: argparse.Namespace) -> tuple[bool, 
     return True, "over_budget" if alerts else "recorded"
 
 
+def _is_review_budget_trigger(state: dict[str, object], trigger: Mapping[str, object]) -> bool:
+    """Project obsolete review overages without mutating signed historical state."""
+    reservations = cast(dict[str, Reservation], state["reservations"])
+    reservation = reservations.get(cast(str, trigger.get("reservation_id")))
+    return (
+        trigger.get("kind") == "budget_overage"
+        and reservation is not None
+        and reservation.get("kind") in {"review", "review-refresh"}
+    )
+
+
+def _budgeted_agent_ids(state: dict[str, object]) -> set[str]:
+    """Count native agent threads separately from isolated formal review processes."""
+    reservations = cast(dict[str, Reservation], state["reservations"])
+    return {
+        cast(str, reservation["agent_id"])
+        for reservation in reservations.values()
+        if reservation.get("kind") == "agent" and isinstance(reservation.get("agent_id"), str)
+    }
+
+
 def _reserved_summary(state: dict[str, object]) -> dict[str, object]:
     limits = cast(Limits, state["limits"])
     usage = cast(Usage, state["usage"])
     return {
         "limits": limits,
         "remaining": {
-            "agent_threads": max(0, limits["max_agent_threads"] - len(usage["agent_ids"])),
+            "agent_threads": max(0, limits["max_agent_threads"] - len(_budgeted_agent_ids(state))),
             "live_eval_calls": max(0, limits["max_live_eval_calls"] - usage["live_eval_calls"]),
             "fast_gates": max(0, limits["max_fast_gates"] - usage["fast_gates"]),
             "integration_checks": max(
@@ -1130,17 +1153,13 @@ def _reserved_summary(state: dict[str, object]) -> dict[str, object]:
             ),
         },
         "over_budget": {
-            "agent_threads": max(0, len(usage["agent_ids"]) - limits["max_agent_threads"]),
+            "agent_threads": max(0, len(_budgeted_agent_ids(state)) - limits["max_agent_threads"]),
             "live_eval_calls": max(0, usage["live_eval_calls"] - limits["max_live_eval_calls"]),
             "fast_gates": max(0, usage["fast_gates"] - limits["max_fast_gates"]),
             "integration_checks": max(
                 0, usage["integration_checks"] - limits["max_integration_checks"]
             ),
-            "review_rounds_by_scope": {
-                scope: rounds - limits["max_review_rounds_per_scope"]
-                for scope, rounds in usage["review_rounds_by_scope"].items()
-                if rounds > limits["max_review_rounds_per_scope"]
-            },
+            "review_rounds_by_scope": {},
         },
         "usage": usage,
     }
@@ -1151,24 +1170,17 @@ def _model_budget_overages(state: dict[str, object]) -> dict[str, int]:
     limits = cast(Limits, state["limits"])
     usage = cast(Usage, state["usage"])
     overages: dict[str, int] = {}
-    agent_threads = len(usage["agent_ids"])
+    agent_threads = len(_budgeted_agent_ids(state))
     if agent_threads > limits["max_agent_threads"]:
         overages["agent_threads"] = agent_threads - limits["max_agent_threads"]
     if usage["live_eval_calls"] > limits["max_live_eval_calls"]:
         overages["live_eval_calls"] = usage["live_eval_calls"] - limits["max_live_eval_calls"]
-    review_rounds = {
-        scope: rounds - limits["max_review_rounds_per_scope"]
-        for scope, rounds in usage["review_rounds_by_scope"].items()
-        if rounds > limits["max_review_rounds_per_scope"]
-    }
-    if review_rounds:
-        overages["review_rounds"] = sum(review_rounds.values())
     return overages
 
 
 def _assert_model_dispatch_within_limits(state: dict[str, object], kind: str) -> None:
-    """Refuse model dispatch while any model ceiling is currently exceeded."""
-    if kind not in {"agent", "review", "review-refresh", "live-eval"}:
+    """Refuse non-review model dispatch while its model ceilings are exceeded."""
+    if kind not in {"agent", "live-eval"}:
         return
     overages = _model_budget_overages(state)
     if overages:
@@ -1438,10 +1450,25 @@ def _start(state: dict[str, object], args: argparse.Namespace) -> tuple[dict[str
         and trigger.get("blocking")
         and trigger.get("kind") == "budget_overage"
         and trigger.get("reservation_id") == args.reservation_id
+        and kind not in {"review", "review-refresh"}
     ]
     applicable_triggers = matching_triggers + overage_triggers
     authorization = cast(dict[str, object], state["recoveries"]).get(args.attempt_id)
     authorized_triggers: list[dict[str, object]] = []
+    obsolete_review_triggers: list[dict[str, object]] = []
+    recovery_trigger_ids: list[str] = []
+    if isinstance(authorization, dict):
+        recovery_trigger_ids = cast(list[str], authorization["trigger_ids"])
+        triggers = cast(dict[str, dict[str, object]], state["triggers"])
+        obsolete_review_triggers = [
+            triggers[trigger_id]
+            for trigger_id in recovery_trigger_ids
+            if trigger_id in triggers
+            and triggers[trigger_id].get("reservation_id") == args.reservation_id
+            and _is_review_budget_trigger(state, triggers[trigger_id])
+        ]
+        obsolete_ids = {trigger["trigger_id"] for trigger in obsolete_review_triggers}
+        recovery_trigger_ids = [rid for rid in recovery_trigger_ids if rid not in obsolete_ids]
     if applicable_triggers:
         if (
             not isinstance(authorization, dict)
@@ -1451,9 +1478,6 @@ def _start(state: dict[str, object], args: argparse.Namespace) -> tuple[dict[str
         applicable_ids = {
             cast(dict[str, object], trigger).get("trigger_id") for trigger in applicable_triggers
         }
-        recovery_trigger_ids = authorization.get("trigger_ids")
-        if recovery_trigger_ids is None:
-            recovery_trigger_ids = [authorization.get("trigger_id")]
         if (
             not isinstance(recovery_trigger_ids, list)
             or set(recovery_trigger_ids) != applicable_ids
@@ -1476,8 +1500,14 @@ def _start(state: dict[str, object], args: argparse.Namespace) -> tuple[dict[str
             for trigger in repeated_triggers
         ):
             raise BudgetError("recovery does not authorize this retry lineage")
-    elif authorization is not None:
+    elif authorization is not None and (
+        not isinstance(authorization, dict)
+        or authorization.get("next_attempt_id") != args.attempt_id
+        or not obsolete_review_triggers
+        or recovery_trigger_ids
+    ):
         raise BudgetError("recovery trigger does not apply to this attempt")
+    authorized_triggers.extend(obsolete_review_triggers)
     if len(attempts) >= MAX_ATTEMPTS:
         raise BudgetError("attempt bound exceeded")
     if recovery is not None:
@@ -1706,7 +1736,11 @@ def _recover(state: dict[str, object], args: argparse.Namespace) -> dict[str, ob
     if state.get("dispatch_frozen"):
         raise BudgetError("dispatch is frozen for rollback reconciliation")
     trigger = cast(dict[str, object], state["triggers"]).get(args.trigger_id)
-    if not isinstance(trigger, dict) or not trigger.get("blocking"):
+    if (
+        not isinstance(trigger, dict)
+        or not trigger.get("blocking")
+        or _is_review_budget_trigger(state, trigger)
+    ):
         raise BudgetError("recovery trigger is not blocking")
     if args.targeted_check_result != "passed":
         raise BudgetError("targeted preflight must pass")
@@ -1979,6 +2013,10 @@ def _report(state: dict[str, object]) -> dict[str, object]:
         "overlap_time_ms": round(overlap * 1000),
         "triggers": [
             projection(cast(dict[str, object], item), trigger_fields)
+            | {
+                "blocking": bool(cast(dict[str, object], item).get("blocking"))
+                and not _is_review_budget_trigger(state, cast(dict[str, object], item))
+            }
             for item in cast(dict[str, object], state["triggers"]).values()
         ],
         "recoveries": [

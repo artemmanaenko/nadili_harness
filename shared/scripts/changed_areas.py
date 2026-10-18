@@ -34,6 +34,7 @@ PYTHON_CHECK_FILES = {
     "scripts/lint.sh",
     "scripts/pre-commit-fast.sh",
     "scripts/pre-commit.sh",
+    "scripts/operator.sh",
     "scripts/test-all.sh",
     "scripts/test.sh",
 }
@@ -41,6 +42,8 @@ CONTRACT_CHECK_FILES = {
     "scripts/check_openapi_contract.py",
     "scripts/export_openapi.py",
     "scripts/client.sh",
+    "scripts/operator.sh",
+    "nadili_runtime/pyproject.toml",
 }
 
 JS_WORKSPACE_FILES = {"package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "turbo.json"}
@@ -109,7 +112,7 @@ def classify_one(path: str, areas: dict[str, bool]) -> None:
     if starts(path, "core/", "tests/"):
         matched = True
 
-    if starts(path, "apps/", "nadili_runtime/") or path in {
+    if starts(path, "apps/", "nadili_runtime/", "packages/operator-python/") or path in {
         ".dockerignore",
         "pyproject.toml",
         "scripts/backend.sh",
@@ -135,7 +138,13 @@ def classify_one(path: str, areas: dict[str, bool]) -> None:
     if (
         path in CONTRACT_CHECK_FILES
         or starts(path, "apps/api/")
-        or starts(path, "packages/client-ts/", "packages/client-python/", "packages/contracts/")
+        or starts(
+            path,
+            "packages/client-ts/",
+            "packages/client-python/",
+            "packages/operator-python/",
+            "packages/contracts/",
+        )
         or ends(path, ".openapi.json", ".openapi.yaml")
     ):
         areas["contracts"] = True

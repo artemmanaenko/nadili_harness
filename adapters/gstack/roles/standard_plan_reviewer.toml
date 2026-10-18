@@ -1,0 +1,13 @@
+name = "standard_plan_reviewer"
+description = "Fresh-context Sol/medium plan review for new proportional Standard items."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+service_tier = "default"
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Read and follow the complete report-only reviewer contract in adapters/gstack/roles/reviewer.toml; its model settings do not apply to this role. Review the applicable product, design and DX lenses together for a new proportional Standard item. Require the item worktree, draft spec digest, full plan, exact lenses and remaining budget. If a named High-risk condition appears, report it and stop for reclassification and Sol/high routing. Do not edit files, spawn agents, commit, change Linear or deliver. Respect the same two-pass allowance.
+"""
+
+[agents]
+enabled = false

@@ -2,8 +2,8 @@
 
 Goal: find in-scope defects in the first complete review, then verify corrections without
 restarting discovery on unrelated upstream work. This contract owns gstack code-review cycles;
-`shared/process/review-checklist.md` owns severity, `shared/process/SKILL.md` owns stage outcomes, and the budget ledger owns
-dispatch limits. TRIP keeps its transport. A second pass may discover a real blocker; report it.
+`shared/process/review-checklist.md` owns severity, `shared/process/SKILL.md` owns stage outcomes, and the budget ledger records
+review attempts without round/thread budget ceilings. Non-review dispatch limits remain. TRIP keeps its transport. A second pass may discover a real blocker; report it.
 
 ## Inputs and ownership
 
@@ -14,6 +14,12 @@ dispatch limits. TRIP keeps its transport. A second pass may discover a real blo
 - Reviewer: inspect changed behavior and direct consumers; return all supported findings,
   coverage gaps and prior-blocker dispositions. No edits or test execution.
 - Implementer: fix the affected scenario and run focused regression checks before another review.
+
+The coordinator's gate summary names the current stage, exact affected-check results (including
+passing correction reruns), unresolved failures and checks still due at later stages. Cite
+`shared/process/gates.md` Lifecycle in that summary: Stage 4 evaluates affected evidence; the verify-enabled
+commit hook and exact integration gate remain mandatory Stage 7 obligations, not prerequisites
+for code-review approval. Do not omit a known failure or present pending checks as passed.
 
 ## Frozen base and integration
 
@@ -55,7 +61,24 @@ rebase it supplies upstream changed paths and overlapping upstream diffs separat
 traces changed dependencies too; path filtering is transport, not permission to ignore impact.
 Unrelated upstream file bodies do not consume the correction patch allowance.
 
-- Initial review: Sol/xhigh; whole item diff and all ten checklist sections.
+- Initial review defaults to Sol/xhigh over the whole item diff and all ten checklist sections.
+  The explicitly requested `--test-only-initial` route is Sol/medium and first-review-only. The
+  runner derives eligibility from the actual base-to-index Git diff: exactly one existing modified
+  `tests/unit/test_*.py` module, up to two added or modified documents at
+  `docs/work/<ID>/hotfix.md` or `docs/work/<ID>/verification.md`, at most three paths total, and
+  no more than 16 KiB of patch. The test module must differ from its base version only by one added
+  standalone `assert isinstance(name, builtin_type)` line; the type comes from the runner's closed
+  built-in set. It rejects renames, deletions, new tests, production/tooling paths, harness modules,
+  pytest fixture declarations, shared fixture/config changes, imports, changed expectations,
+  assertion removals, and every other path. A current or prior version of the test module
+  importing/executing project scripts or containing a harness marker is ineligible. It checks
+  Git tree modes and rejects symlink or executable files. This bounded path is not a caller
+  assertion: review the exact candidate/base diff.
+  The reviewer still checks assertion quality, omissions, weakened expectations, the tested source
+  contract and direct consumers, failure behavior, and every canonical checklist section. All
+  other initial candidates, including runtime, concurrency, security, tooling and default routes,
+  remain exhaustive Sol/xhigh. A candidate that changes this route's implementation or policy is
+  tooling and therefore remains exhaustive. Never apply the route to the current item by inference.
 - Correction: Sol/medium; prior blockers, generated delta and affected behavior/dependencies.
 - Broader change: `--exhaustive-reason <technical-code>` selects Sol/xhigh and retains prior
   findings. Required when the bounded packet exceeds 128 KiB or a material redesign needs a full

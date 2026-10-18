@@ -45,6 +45,28 @@ def test_init_refuses_to_reset_an_existing_ledger(tmp_path: Path) -> None:
     assert "budget state already exists" in reset.stderr
 
 
+def test_claude_event_stream_is_an_accepted_usage_source(tmp_path: Path) -> None:
+    assert "claude_event_stream" in budget.USAGE_SOURCES
+    parsed = budget._parser().parse_args(
+        [
+            "finish",
+            "--state",
+            str(tmp_path / "ledger.json"),
+            "--attempt-id",
+            "claude-attempt",
+            "--status",
+            "succeeded",
+            "--result-code",
+            "completed",
+            "--usage-source",
+            "claude_event_stream",
+            "--usage-channel",
+            "stdout_jsonl",
+        ]
+    )
+    assert parsed.usage_source == "claude_event_stream"
+
+
 def test_default_gate_limits_allow_six_fast_and_two_integration_checks(tmp_path: Path) -> None:
     state = _init_state(tmp_path)
     limits = json.loads(state.read_text(encoding="utf-8"))["limits"]
@@ -424,9 +446,7 @@ def test_review_fast_gate_and_integration_budgets_are_independent(tmp_path: Path
     assert first_review.returncode == 0, first_review.stderr
     assert second_review.returncode == 0, second_review.stderr
     assert third_review.returncode == 0, third_review.stderr
-    assert (
-        "review round target exceeded for scope: code" in json.loads(third_review.stdout)["alerts"]
-    )
+    assert not json.loads(third_review.stdout)["alerts"]
     assert all(gate.returncode == 0 for gate in fast_gates)
     assert all(not json.loads(gate.stdout)["alerts"] for gate in fast_gates[:6])
     assert "full fast gate target exceeded" in json.loads(fast_gates[6].stdout)["alerts"]
@@ -1797,115 +1817,100 @@ def test_over_budget_reservation_creates_a_blocking_v2_trigger(tmp_path: Path) -
     )
 
 
-def test_model_review_overage_cannot_be_recovered_until_owner_amendment(tmp_path: Path) -> None:
-    state = _init_state(tmp_path, "--max-review-rounds-per-scope", "2")
-    for reservation_id in ("review-1", "review-2", "review-3"):
-        assert (
-            _run_budget(
-                tmp_path,
-                "reserve",
-                "--state",
-                str(state),
-                "--id",
-                reservation_id,
-                "--kind",
-                "review",
-                "--agent-id",
-                "sol",
-                "--fork-turns",
-                "none",
-                "--scope",
-                "code",
-            ).returncode
-            == 0
+@pytest.mark.parametrize("legacy_trigger", [False, True])
+def test_review_ignores_budget_ceilings_and_preserves_attempts(
+    tmp_path: Path, legacy_trigger: bool
+) -> None:
+    state = _init_state(tmp_path, "--max-review-rounds-per-scope", "1", "--max-agent-threads", "1")
+    for number in range(1, 4):
+        rid = f"review-{number}"
+        reserved = _run_budget(
+            tmp_path,
+            "reserve",
+            "--state",
+            str(state),
+            "--id",
+            rid,
+            "--kind",
+            "review",
+            "--agent-id",
+            f"reviewer-{number}",
+            "--fork-turns",
+            "none",
+            "--scope",
+            "code",
         )
-    trigger = next(
-        item
-        for item in json.loads(_run_budget(tmp_path, "report", "--state", str(state)).stdout)[
-            "triggers"
-        ]
-        if item["kind"] == "budget_overage"
-    )
-    before = json.loads(state.read_text(encoding="utf-8"))
-    blocked = _run_budget(
+        assert reserved.returncode == 0, reserved.stderr
+        assert not json.loads(reserved.stdout)["alerts"]
+        if legacy_trigger and number == 3:
+            contents = json.loads(state.read_text(encoding="utf-8"))
+            contents["triggers"]["legacy-review-overage"] = {
+                "trigger_id": "legacy-review-overage",
+                "kind": "budget_overage",
+                "reservation_id": rid,
+                "blocking": True,
+                "created_at": "2026-10-03T00:00:00.000Z",
+            }
+            state.write_text(json.dumps(contents), encoding="utf-8")
+        started = _run_budget(
+            tmp_path,
+            "start",
+            "--state",
+            str(state),
+            "--reservation-id",
+            rid,
+            "--attempt-id",
+            f"attempt-{number}",
+        )
+        assert started.returncode == 0, started.stderr
+        finished = _run_budget(
+            tmp_path,
+            "finish",
+            "--state",
+            str(state),
+            "--attempt-id",
+            f"attempt-{number}",
+            "--status",
+            "succeeded",
+            "--result-code",
+            "review_succeeded",
+        )
+        assert finished.returncode == 0, finished.stderr
+    report = json.loads(_run_budget(tmp_path, "report", "--state", str(state)).stdout)
+    assert json.loads(state.read_text(encoding="utf-8"))["usage"]["review_rounds_by_scope"] == {
+        "code": 3
+    }
+    assert json.loads(reserved.stdout)["over_budget"]["review_rounds_by_scope"] == {}
+    assert json.loads(reserved.stdout)["over_budget"]["agent_threads"] == 0
+    assert len(json.loads(state.read_text(encoding="utf-8"))["attempts"]) == 3
+    assert not any(trigger["blocking"] for trigger in report["triggers"])
+    agent = _run_budget(
         tmp_path,
-        "start",
+        "reserve",
         "--state",
         str(state),
-        "--reservation-id",
-        "review-3",
-        "--attempt-id",
-        "review-3-attempt",
+        "--id",
+        "implementation",
+        "--kind",
+        "agent",
+        "--agent-id",
+        "executor",
+        "--fork-turns",
+        "none",
     )
-    assert blocked.returncode == 2
-    assert "explicit owner-approved amendment required" in blocked.stderr
-    unchanged = json.loads(state.read_text(encoding="utf-8"))
-    assert unchanged["revision"] == before["revision"]
-    assert "review-3-attempt" not in unchanged["attempts"]
-
-    recovery_blocked = _run_budget(
-        tmp_path,
-        "recover",
-        "--state",
-        str(state),
-        "--trigger-id",
-        trigger["trigger_id"],
-        "--next-attempt-id",
-        "review-3-attempt",
-        "--targeted-check-id",
-        "ruff",
-        "--targeted-check-result",
-        "passed",
-        "--next-action",
-        "retry-review",
-    )
-    assert recovery_blocked.returncode == 2
-    assert "explicit owner-approved amendment required" in recovery_blocked.stderr
-    assert "review-3-attempt" not in json.loads(state.read_text(encoding="utf-8"))["recoveries"]
-
-    amended = _run_budget(
-        tmp_path,
-        "amend",
-        "--state",
-        str(state),
-        "--owner-approval",
-        "Owner approved the third review round.",
-        "--max-review-rounds-per-scope",
-        "3",
-    )
-    assert amended.returncode == 0, amended.stderr
-    recovered = _run_budget(
-        tmp_path,
-        "recover",
-        "--state",
-        str(state),
-        "--trigger-id",
-        trigger["trigger_id"],
-        "--next-attempt-id",
-        "review-3-attempt",
-        "--targeted-check-id",
-        "ruff",
-        "--targeted-check-result",
-        "passed",
-        "--next-action",
-        "retry-review",
-    )
-    assert recovered.returncode == 0, recovered.stderr
+    assert agent.returncode == 0, agent.stderr
+    assert not json.loads(agent.stdout)["alerts"]
     started = _run_budget(
         tmp_path,
         "start",
         "--state",
         str(state),
         "--reservation-id",
-        "review-3",
+        "implementation",
         "--attempt-id",
-        "review-3-attempt",
+        "implementation-attempt",
     )
     assert started.returncode == 0, started.stderr
-    assert (
-        json.loads(state.read_text(encoding="utf-8"))["recoveries"]["review-3-attempt"]["consumed"]
-        is True
-    )
 
 
 def test_model_thread_ceiling_blocks_start_and_recovery_until_amended(tmp_path: Path) -> None:
@@ -3633,3 +3638,211 @@ def test_interrupted_rollback_merge_recovers_and_replays_idempotently(
     )
     assert retried.returncode == 0, retried.stderr
     assert json.loads(state.read_text(encoding="utf-8"))["dispatch_frozen"] is False
+
+
+def test_review_can_start_while_non_review_model_budget_is_exceeded(tmp_path: Path) -> None:
+    state = _init_state(tmp_path, "--max-agent-threads", "1", "--max-live-eval-calls", "1")
+    for rid in ("agent-1", "agent-2"):
+        reserved = _run_budget(
+            tmp_path,
+            "reserve",
+            "--state",
+            str(state),
+            "--id",
+            rid,
+            "--kind",
+            "agent",
+            "--agent-id",
+            rid,
+            "--fork-turns",
+            "none",
+        )
+        assert reserved.returncode == 0, reserved.stderr
+    evaluation = _run_budget(
+        tmp_path,
+        "reserve",
+        "--state",
+        str(state),
+        "--id",
+        "evaluation",
+        "--kind",
+        "live-eval",
+        "--units",
+        "2",
+        "--static-check",
+        "contract-pass",
+    )
+    assert evaluation.returncode == 0, evaluation.stderr
+    review = _run_budget(
+        tmp_path,
+        "reserve",
+        "--state",
+        str(state),
+        "--id",
+        "review",
+        "--kind",
+        "review",
+        "--agent-id",
+        "sol",
+        "--fork-turns",
+        "none",
+        "--scope",
+        "code",
+    )
+    assert review.returncode == 0, review.stderr
+    assert not json.loads(review.stdout)["alerts"]
+    started = _run_budget(
+        tmp_path,
+        "start",
+        "--state",
+        str(state),
+        "--reservation-id",
+        "review",
+        "--attempt-id",
+        "review-attempt",
+    )
+    assert started.returncode == 0, started.stderr
+    blocked = _run_budget(
+        tmp_path,
+        "start",
+        "--state",
+        str(state),
+        "--reservation-id",
+        "agent-2",
+        "--attempt-id",
+        "agent-attempt",
+    )
+    assert blocked.returncode == 2
+    assert "explicit owner-approved amendment required" in blocked.stderr
+
+
+@pytest.mark.parametrize("mixed_recovery", [False, True])
+def test_saved_review_recovery_resumes_after_budget_exemption(
+    tmp_path: Path, mixed_recovery: bool
+) -> None:
+    state = _init_state(tmp_path)
+    for number in (1, 2, 3):
+        reserved = _run_budget(
+            tmp_path,
+            "reserve",
+            "--state",
+            str(state),
+            "--id",
+            f"review-{number}",
+            "--kind",
+            "review",
+            "--agent-id",
+            "sol",
+            "--fork-turns",
+            "none",
+            "--scope",
+            "code",
+        )
+        assert reserved.returncode == 0, reserved.stderr
+        if number < 3:
+            started = _run_budget(
+                tmp_path,
+                "start",
+                "--state",
+                str(state),
+                "--reservation-id",
+                f"review-{number}",
+                "--attempt-id",
+                f"attempt-{number}",
+                "--stage",
+                "review",
+                "--model",
+                "sol",
+            )
+            assert started.returncode == 0, started.stderr
+            finished = _run_budget(
+                tmp_path,
+                "finish",
+                "--state",
+                str(state),
+                "--attempt-id",
+                f"attempt-{number}",
+                "--status",
+                "failed",
+                "--result-code",
+                "timeout" if mixed_recovery else f"err-{number}",
+            )
+            assert finished.returncode == 0, finished.stderr
+    contents = json.loads(state.read_text(encoding="utf-8"))
+    contents["triggers"]["old-overage"] = {
+        "trigger_id": "old-overage",
+        "kind": "budget_overage",
+        "reservation_id": "review-3",
+        "blocking": True,
+        "created_at": "2026-10-03T00:00:00.000Z",
+    }
+    trigger_ids = list(contents["triggers"])
+    contents["recoveries"]["saved-attempt"] = {
+        "trigger_id": "old-overage",
+        "trigger_ids": trigger_ids,
+        "next_attempt_id": "saved-attempt",
+        "targeted_check_id": "transport-check",
+        "targeted_check_result": "passed",
+        "next_action": "retry-review",
+        "consumed": False,
+        "created_at": "2026-10-03T00:00:00.000Z",
+    }
+    state.write_text(json.dumps(contents), encoding="utf-8")
+    started = _run_budget(
+        tmp_path,
+        "start",
+        "--state",
+        str(state),
+        "--reservation-id",
+        "review-3",
+        "--attempt-id",
+        "saved-attempt",
+        "--stage",
+        "review",
+        "--model",
+        "sol",
+        "--retry-of",
+        "attempt-2",
+    )
+    assert started.returncode == 0, started.stderr
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["recoveries"]["saved-attempt"]["consumed"] is True
+    assert all(not persisted["triggers"][trigger_id]["blocking"] for trigger_id in trigger_ids)
+    assert persisted["attempts"]["saved-attempt"]["retry_of"] == "attempt-2"
+
+
+def test_pre_upgrade_rollback_binding_with_review_overage_remains_valid(tmp_path: Path) -> None:
+    state, export, _, _ = _rollback_fixture(tmp_path)
+    contents = json.loads(state.read_text(encoding="utf-8"))
+    contents["triggers"]["legacy-overage"] = {
+        "trigger_id": "legacy-overage",
+        "kind": "budget_overage",
+        "reservation_id": "review",
+        "blocking": True,
+        "created_at": "2026-10-03T00:00:00.000Z",
+    }
+    # Reproduce a pre-upgrade signed frozen snapshot, including its blocking historical trigger.
+    state.write_text(json.dumps(contents), encoding="utf-8")
+    binding_path = export.with_suffix(export.suffix + ".binding.json")
+    binding = json.loads(binding_path.read_text(encoding="utf-8"))
+    binding["v2_sha256"] = budget._sha_state(contents)
+    binding_path.write_text(json.dumps(binding), encoding="utf-8")
+    before = state.read_bytes()
+    report = _run_budget(tmp_path, "report", "--state", str(state))
+    assert report.returncode == 0, report.stderr
+    assert json.loads(report.stdout)["triggers"][0]["blocking"] is False
+    assert state.read_bytes() == before
+    reconciled = _run_budget(
+        tmp_path,
+        "rollback-reconcile",
+        "--state",
+        str(state),
+        "--source",
+        str(export),
+        "--base-hash",
+        binding["v2_sha256"],
+    )
+    assert reconciled.returncode == 0, reconciled.stderr
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["dispatch_frozen"] is False
+    assert persisted["triggers"]["legacy-overage"]["blocking"] is True

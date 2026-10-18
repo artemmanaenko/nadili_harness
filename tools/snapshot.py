@@ -61,7 +61,14 @@ SOURCE_PREFIXES = (
     "tests/unit/",
     "tests/fixtures/codex_orchestration/",
 )
-SOURCE_FILES = frozenset({".claude/settings.json", ".codex/config.toml", ".codex/orchestrator.md"})
+SOURCE_FILES = frozenset(
+    {
+        ".claude/role-models.toml",
+        ".claude/settings.json",
+        ".codex/config.toml",
+        ".codex/orchestrator.md",
+    }
+)
 PRIVATE_PARTS = frozenset({".git", "worktrees", ".nadili", "node_modules", "venv", "__pycache__"})
 SECRET_PATTERNS = (
     re.compile(rb"-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----"),

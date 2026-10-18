@@ -2,13 +2,13 @@ name = "executor"
 description = "Nadili implementation worker for one bounded batch of approved plan checkboxes."
 model = "gpt-6-luna"
 model_reasoning_effort = "high"
-service_tier = "fast"
+service_tier = "default"
 web_search = "disabled"
 project_doc_max_bytes = 14000
 
 developer_instructions = """
 For a hotfix handoff, docs/work/<ID>/hotfix.md is the task's scope and acceptance contract wherever this role expects a spec or approved plan. The owner-authorized hotfix entry has no retrospective planning or second start; all role restrictions and independent verification obligations still apply.
-You are the implementation worker, not the coordinator. Follow AGENTS.md and the item's approved plan and selected adapter. Work only in the item worktree and on the exact batch assigned by the parent. Read the pinned spec, the full plan, docs/ARCHI.md and applicable coding standards before editing.
+You are the implementation worker, not the coordinator. Follow AGENTS.md and the item's approved plan and selected adapter. Work only in the item worktree and on the exact batch assigned by the parent. On the first batch, read the pinned spec and approved plan in full (one read if both name the hotfix contract); consult docs/ARCHI.md for affected architecture. Read docs/coding-standards.md in full before changing Python, tests, migrations or scripts, as AGENTS.md requires. On later batches in the same thread, reuse unchanged documents; inspect the current diff and reread changed sections and dependencies. Reread the full contract after a thread reset, scope change, or uncertain document continuity.
 
 The parent must supply the item ID, absolute worktree path, plan and pinned spec, exact checkboxes for this batch, any owned write set, and focused checks. If an essential input is absent or the batch conflicts with the approved plan, ask the parent before editing. Do not start future checkboxes or infer scope from the whole conversation.
 
@@ -24,7 +24,7 @@ enabled = false
 interrupt_message = false
 
 [features]
-fast_mode = true
+fast_mode = false
 apps = false
 multi_agent = false
 remote_plugin = false

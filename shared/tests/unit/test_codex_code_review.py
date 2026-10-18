@@ -134,6 +134,26 @@ def _candidate_repository(
     return repository, base
 
 
+def _plain_test_candidate(tmp_path: Path) -> tuple[Path, str, str]:
+    repository, _ = _candidate_repository(tmp_path)
+    _git(repository, "restore", "--staged", "example.py")
+    _git(repository, "restore", "example.py")
+    test_path = repository / "tests/unit/test_typing_contract.py"
+    _write(
+        test_path,
+        "def test_typed_value_is_preserved() -> None:\n    value: int = 3\n    assert value == 3\n",
+    )
+    _git(repository, "add", str(test_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "test baseline")
+    base = _git(repository, "rev-parse", "HEAD")
+    _write(
+        test_path,
+        "def test_typed_value_is_preserved() -> None:\n    value: int = 3\n    assert isinstance(value, int)\n    assert value == 3\n",
+    )
+    _git(repository, "add", str(test_path.relative_to(repository)))
+    return repository, base, "tests/unit/test_typing_contract.py"
+
+
 def _budget_state(tmp_path: Path, *limits: str) -> Path:
     state = tmp_path / "orchestration-budget.json"
     result = subprocess.run(  # noqa: S603 -- fixed project-local budget script.
@@ -315,6 +335,7 @@ def _arguments(
     correction_diff: Path | None = None,
     item_id: str = "NAD-TEST",
     hotfix: bool = False,
+    test_only_initial: bool = False,
 ) -> tuple[str, ...]:
     arguments = [
         "--worktree",
@@ -338,6 +359,8 @@ def _arguments(
         arguments.extend(("--hotfix", f"docs/work/{item_id}/hotfix.md"))
     else:
         arguments.extend(("--spec", "docs/spec.md", "--plan", "docs/plan.md"))
+    if test_only_initial:
+        arguments.append("--test-only-initial")
     if state is not None:
         arguments[arguments.index("--reservation-id") : arguments.index("--reservation-id")] = [
             "--budget-state",
@@ -395,12 +418,13 @@ def test_runner_uses_minimal_read_only_codex_exec_and_records_review_budget(
     assert "--ignore-user-config" in call["argv"]
     assert "--strict-config" in call["argv"]
     assert call["argv"][call["argv"].index("--sandbox") + 1] == "read-only"
-    assert call["argv"][call["argv"].index("--model") + 1] == "gpt-6-sol"
+    assert call["argv"][call["argv"].index("--model") + 1] == "gpt-6.1-sol"
     assert 'model_reasoning_effort="xhigh"' in call["argv"]
     assert "skills.max_context_tokens=1" in call["argv"]
     assert "features.plugins=false" in call["argv"]
     assert "mcp_servers={}" in call["argv"]
-    assert "Do not read or execute any SKILL.md file" in call["prompt"]
+    assert "Do not execute skills or read unrelated SKILL.md files" in call["prompt"]
+    assert "Review changed SKILL.md content only" in call["prompt"]
     assert "Focused checks passed." in call["prompt"]
     assert "initial exhaustive review" in call["prompt"]
     assert "Do not stop after" in call["prompt"]
@@ -413,6 +437,280 @@ def test_runner_uses_minimal_read_only_codex_exec_and_records_review_budget(
     attempt = budget["attempts"]["code-review-round-1-attempt"]
     assert attempt["category"] == "model"
     assert attempt["effort"] == "xhigh"
+
+
+def test_test_only_initial_review_uses_medium_after_verifying_real_test_diff(
+    tmp_path: Path,
+) -> None:
+    repository, base, _ = _plain_test_candidate(tmp_path)
+    state = _budget_state(tmp_path)
+    gate_summary = tmp_path / "gate.txt"
+    gate_summary.write_text("Focused checks passed.\n", encoding="utf-8")
+    record = tmp_path / "codex-call.json"
+    env = {
+        **os.environ,
+        "FAKE_CODEX_RECORD": str(record),
+        "FAKE_CODEX_CANDIDATE": "candidate-test-1",
+    }
+
+    result = _run(
+        *_arguments(
+            repository=repository,
+            base=base,
+            gate_summary=gate_summary,
+            state=state,
+            codex_binary=_fake_codex(tmp_path),
+            test_only_initial=True,
+        ),
+        cwd=PROJECT_ROOT,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    call = json.loads(record.read_text(encoding="utf-8"))
+    assert 'model_reasoning_effort="medium"' in call["argv"]
+    assert "bounded initial review" in call["prompt"]
+    assert "weakened expectations" in call["prompt"]
+    assert "direct consumers" in call["prompt"]
+    review = json.loads(result.stdout)
+    assert review["review_context"]["mode"] == "test_only_initial"
+    assert len(review["checklist_sections"]) == len(CANONICAL_CHECKLIST_NAMES)
+    attempt = json.loads(state.read_text(encoding="utf-8"))["attempts"][
+        "code-review-round-1-attempt"
+    ]
+    assert attempt["effort"] == "medium"
+
+    second = _run(
+        *_arguments(
+            repository=repository,
+            base=base,
+            gate_summary=gate_summary,
+            state=state,
+            codex_binary=_fake_codex(tmp_path),
+            reservation_id="code-review-round-2",
+            test_only_initial=True,
+        ),
+        cwd=PROJECT_ROOT,
+        env=env,
+    )
+    assert second.returncode == 2
+    assert "allowed only on the first review" in second.stderr
+
+
+def test_test_only_initial_flag_cannot_hide_a_mixed_production_patch(tmp_path: Path) -> None:
+    repository, base, _ = _plain_test_candidate(tmp_path)
+    _write(repository / "example.py", "def identity(value: int) -> int:\n    return 4\n")
+    _git(repository, "add", "example.py")
+    state = _budget_state(tmp_path)
+    gate_summary = tmp_path / "gate.txt"
+    gate_summary.write_text("Focused checks passed.\n", encoding="utf-8")
+    record = tmp_path / "codex-call.json"
+    env = {
+        **os.environ,
+        "FAKE_CODEX_RECORD": str(record),
+        "FAKE_CODEX_CANDIDATE": "candidate-test-1",
+    }
+
+    result = _run(
+        *_arguments(
+            repository=repository,
+            base=base,
+            gate_summary=gate_summary,
+            state=state,
+            codex_binary=_fake_codex(tmp_path),
+            test_only_initial=True,
+        ),
+        cwd=PROJECT_ROOT,
+        env=env,
+    )
+
+    assert result.returncode == 2
+    assert "rejects changed path: example.py" in result.stderr
+    assert not record.exists()
+    budget = json.loads(state.read_text(encoding="utf-8"))
+    assert budget["attempts"] == {}
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "production",
+        "harness",
+        "baseline_harness",
+        "fixture",
+        "import",
+        "behavior",
+        "new_test",
+        "nested",
+        "module_assert",
+        "config",
+        "delete",
+        "rename",
+        "executable",
+        "symlink",
+        "oversized",
+    ],
+)
+def test_test_only_initial_review_rejects_ineligible_git_diff(tmp_path: Path, failure: str) -> None:
+    repository, base, test_path = _plain_test_candidate(tmp_path)
+
+    def git(*arguments: str) -> str:
+        return _git(repository, *arguments)
+
+    if failure == "production":
+        _write(repository / "example.py", "def identity(value: int) -> int:\n    return 4\n")
+        _git(repository, "add", "example.py")
+    elif failure == "harness":
+        _write(
+            repository / test_path,
+            "import subprocess\n\ndef test_harness() -> None:\n    subprocess.run(['true'])\n",
+        )
+        _git(repository, "add", test_path)
+    elif failure == "baseline_harness":
+        _git(repository, "reset", "--hard", "HEAD")
+        _write(
+            repository / test_path,
+            "import subprocess\n\ndef test_harness() -> None:\n    subprocess.run(['true'])\n",
+        )
+        _git(repository, "add", test_path)
+        _git(repository, "commit", "-qm", "harness baseline")
+        base = _git(repository, "rev-parse", "HEAD")
+        _write(
+            repository / test_path,
+            "def test_typed_value_is_preserved() -> None:\n    value = 4\n    assert value == 4\n",
+        )
+        _git(repository, "add", test_path)
+    elif failure == "fixture":
+        _write(
+            repository / test_path,
+            "import pytest\n\n@pytest.fixture\ndef sample() -> int:\n    return 1\n",
+        )
+        _git(repository, "add", test_path)
+    elif failure == "import":
+        _write(
+            repository / test_path,
+            "import typing\n\ndef test_typed_value_is_preserved() -> None:\n"
+            "    value: int = 3\n    assert isinstance(value, int)\n    assert value == 3\n",
+        )
+        _git(repository, "add", test_path)
+    elif failure == "behavior":
+        _write(
+            repository / test_path,
+            "def test_typed_value_is_preserved() -> None:\n"
+            "    value: int = 3\n    assert isinstance(value, int)\n    assert value == 4\n",
+        )
+        _git(repository, "add", test_path)
+    elif failure == "new_test":
+        _write(repository / "tests/unit/test_new.py", "def test_new() -> None:\n    assert True\n")
+        _git(repository, "add", "tests/unit/test_new.py")
+    elif failure == "nested":
+        _write(
+            repository / "tests/unit/nested/test_new.py",
+            "def test_new() -> None:\n    assert True\n",
+        )
+        _git(repository, "add", "tests/unit/nested/test_new.py")
+    elif failure == "module_assert":
+        _write(
+            repository / test_path,
+            "assert isinstance(value, int)\ndef test_typed_value_is_preserved() -> None:\n"
+            "    value: int = 3\n    assert value == 3\n",
+        )
+        _git(repository, "add", test_path)
+    elif failure == "config":
+        _write(repository / "pyproject.toml", "[tool.pytest.ini_options]\naddopts = ''\n")
+        _git(repository, "add", "pyproject.toml")
+    elif failure == "delete":
+        _git(repository, "rm", "-f", test_path)
+    elif failure == "rename":
+        _git(repository, "mv", "-f", test_path, "tests/unit/test_renamed_contract.py")
+    elif failure == "executable":
+        (repository / test_path).chmod(0o755)
+        _git(repository, "add", test_path)
+    elif failure == "symlink":
+        (repository / test_path).unlink()
+        (repository / test_path).symlink_to("../../example.py")
+        _git(repository, "add", test_path)
+    else:
+        _write(
+            repository / test_path,
+            "def test_bounded_change() -> None:\n    assert isinstance(value, int)\n# "
+            + "x" * 17_000
+            + "\n",
+        )
+        _git(repository, "add", test_path)
+
+    with pytest.raises(review_runner.ReviewRunnerError):
+        review_runner._validate_test_only_initial(
+            git, base=base, tree=git("write-tree"), item_id="NAD-TEST"
+        )
+
+
+@pytest.mark.parametrize(
+    "import_line,decorator",
+    [
+        ("from pytest import fixture", "fixture"),
+        ("from pytest import fixture as fx", "fx"),
+        ("from pytest import fixture as fx", "fx()"),
+        ("from pytest import *", "fixture"),
+    ],
+)
+def test_test_only_review_rejects_bare_and_aliased_fixture_decorators(
+    tmp_path: Path,
+    import_line: str,
+    decorator: str,
+) -> None:
+    repository, _, test_path = _plain_test_candidate(tmp_path)
+    source = f"{import_line}\n@{decorator}\ndef sample():\n    return 1\n\ndef test_value():\n    value = 1\n    assert value == 1\n"
+    _write(repository / test_path, source)
+    _git(repository, "add", test_path)
+    _git(repository, "commit", "-qm", "fixture baseline")
+    base = _git(repository, "rev-parse", "HEAD")
+    _write(
+        repository / test_path,
+        source.replace(
+            "    assert value == 1", "    assert isinstance(value, int)\n    assert value == 1"
+        ),
+    )
+    _git(repository, "add", test_path)
+
+    def git(*arguments: str) -> str:
+        return _git(repository, *arguments)
+
+    with pytest.raises(review_runner.ReviewRunnerError, match="fixture"):
+        review_runner._validate_test_only_initial(
+            git, base=base, tree=git("write-tree"), item_id="NAD-TEST"
+        )
+
+
+def test_test_only_initial_review_rejects_second_review_and_exhaustive_override(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(SystemExit):
+        review_runner._parse_args(
+            [
+                "--worktree",
+                str(tmp_path),
+                "--item-id",
+                "NAD-TEST",
+                "--spec",
+                "spec.md",
+                "--plan",
+                "plan.md",
+                "--candidate",
+                "candidate",
+                "--diff-base",
+                "base",
+                "--gate-summary-file",
+                "gate.txt",
+                "--reservation-id",
+                "round-1",
+                "--attempt-id",
+                "attempt-1",
+                "--test-only-initial",
+                "--exhaustive-reason",
+                "reason",
+            ]
+        )
 
 
 def test_runner_reviews_hotfix_contract_without_inventing_an_approved_plan(
@@ -694,7 +992,7 @@ def test_rebase_refresh_revalidates_evidence_at_attempt_start(
             "--stage",
             "code-review",
             "--model",
-            "gpt-6-sol",
+            "gpt-6.1-sol",
             "--effort",
             "medium",
             "--category",
@@ -1012,7 +1310,7 @@ def test_runner_does_not_launch_when_start_replays_running_attempt(tmp_path: Pat
         "--stage",
         "code-review",
         "--model",
-        "gpt-6-sol",
+        "gpt-6.1-sol",
         "--effort",
         "xhigh",
         "--category",
@@ -1190,7 +1488,7 @@ def test_runner_passes_coordinator_known_attempt_and_retry_parent_to_budget(
                 "--stage",
                 "code-review",
                 "--model",
-                "gpt-6-sol",
+                "gpt-6.1-sol",
             ).returncode
             == 0
         )

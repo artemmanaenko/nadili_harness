@@ -12,14 +12,22 @@ implementation-start request when the owner already asked to complete this work.
 
 This is the hotfix entrypoint of `shared/process/SKILL.md`. It replaces planned
 intake and Stages 1–2 with the bounded contract below, then uses Stages 3–7 for completion,
-independent verification and integration. Production release stays with `nadili-release` and
-requires its own user request. Do not create a retrospective spec, plan or plan-review ceremony.
+independent verification and integration. This skill never deploys. Production routing and its
+separate authorization follow `shared/process/SKILL.md` Production boundary and the implemented
+NAD-489 runbook, `docs/runbooks/deployment.md`. Do not create a retrospective spec, plan or
+plan-review ceremony.
 
 ## Establish the candidate
 
 Read `AGENTS.md` and inspect only the relevant conversation decisions, diff, direct consumers
 and focused authorities. Establish the expected result and what is still missing. Ask only for
 a material missing decision or ambiguous patch ownership; do not rediscover settled scope.
+
+For infrastructure updates, establish the supported installed state and trace the affected path
+before implementing: artifact producer, accepted signer, installer and dependency activation.
+Use existing evidence or bounded read-only probes within authorized access; distinguish facts
+from assumptions. Record missing capabilities or authority in the existing contract, separating
+first activation from routine deployment. Discovery does not authorize provisioning or new grants.
 
 Reuse the issue and its worktree when present. Check an existing issue's `blockedBy` before
 proceeding, under the normal process blocker rule. For new work, register one bounded issue
@@ -57,6 +65,8 @@ Use nonempty `## Outcome`, `## Authorization`, `## Scope`, `## Origin`, `## Risk
   Record `Workflow adapter: gstack`, `Verification: UAT|Done` with a reason, and release type.
 - Risks: affected security, data, compatibility or concurrency boundaries and any concrete
   architecture decision/no-impact conclusion. Risk determines verification depth, not planning.
+  Record `**Workflow route:** Small|Standard|High-risk` and `**Route reason:**` here, classified
+  under `adapters/gstack/proportional-workflows.md`.
 - Validation: runnable acceptance/failure checks and separate Backend QA/Frontend QA routes,
   with boundary, oracle and environment (plus viewport where relevant), or justified N/A.
 
@@ -80,7 +90,8 @@ needed. For hotfix, references there to the spec/approved plan mean this contrac
 Ready for Development or wait for a second start. The coordinator may finish a small delta
 directly; delegate a bounded implementation only when useful. Use the gstack adapter's review
 and QA methods, not its plan-review lenses. In Codex keep `adapters/gstack/orchestrator.md` accounting,
-review limits and fresh independent QA; scope is not a new budget allowance.
+non-review budget limits and fresh independent QA; code-review attempts remain accounted
+without round/thread ceilings or owner budget amendments.
 
 Fix concrete gaps in the stated behavior; update affected tests, generated contracts and
 canonical docs. Record verification and review evidence in their usual locations. For formal
@@ -92,7 +103,7 @@ concrete in-scope defect stay outside this item.
 If a new product/architecture decision is necessary, preserve the candidate and ask that
 specific question. Resume within this route when it is resolved; use planning only when the
 owner chooses to redefine the task. High risk alone does not force retrospective planning.
-Applicable QA blockers, unresolved P0/P1/P2, exhausted model/review allowance and red gates
+Applicable QA blockers, unresolved P0/P1/P2, exhausted non-review model allowance and red gates
 retain their existing stop rules. No stale verdict may be used after a relevant correction.
 
 Finish through `nadili-deliver`: verify-enabled commit hook, exact affected integration gate

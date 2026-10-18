@@ -5,6 +5,10 @@ description: Start an approved Ready for Development Nadili item on the owner's 
 
 # Nadili implement
 
+At entry, resolve the item ID and brief from the approved plan and set the current Codex task
+title to `WIP - <NAD-XXX> - <Brief>` under root `AGENTS.md`. Replace generic `Plan` or
+`Implement` labels; preserve the item ID and meaningful brief through later status transitions.
+
 For an existing patch or concrete bounded fix without an approved plan, use `nadili-hotfix`
 when the owner requests completion/integration. Do not manufacture a plan to enter this skill.
 
@@ -20,4 +24,5 @@ After implementation, continue through `nadili-review`, `nadili-backend-qa`,
 `nadili-frontend-qa` and `nadili-deliver` without another routine owner prompt. An independent
 tester performs each applicable QA route. On a defect, fix it, refresh affected review and
 retest within the approved allowance. Stop for a real owner-only blocker, an explicit plan
-decision or exhausted review/model allowance; recovery never expands it.
+decision or exhausted non-review model allowance; recovery never expands it. Code-review
+passes continue without budget amendments until a valid APPROVED verdict.

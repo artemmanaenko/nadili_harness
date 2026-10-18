@@ -95,7 +95,14 @@ RULES: tuple[Rule, ...] = (
         ("apps.api", "core.storage"),
         "Python client must remain a wire-only package",
     ),
+    (
+        "external-operator",
+        ("packages/operator-python/",),
+        ("apps.api", "core", "sqlalchemy", "telethon", "atproto", "feedparser", "telegram"),
+        "external operator must stay isolated from backend, persistence and provider adapters",
+    ),
 )
+OPERATOR_RUNTIME_MODULE = "nadili_runtime.log_redaction"
 
 #: A vendor SDK and the only paths permitted to import it. The rule table above
 #: forbids an import across a whole path prefix and cannot express "everything under
@@ -175,6 +182,21 @@ def check_file(path: Path, root: Path) -> list[Violation]:
                             (relative, node.lineno, area, imported, forbidden, reason)
                         )
         for imported in imported_roots(node):
+            if (
+                relative.startswith("packages/operator-python/")
+                and is_forbidden(imported, "nadili_runtime")
+                and imported != OPERATOR_RUNTIME_MODULE
+            ):
+                violations.append(
+                    (
+                        relative,
+                        node.lineno,
+                        "external-operator",
+                        imported,
+                        "nadili_runtime",
+                        "operator may import only the canonical log redaction module",
+                    )
+                )
             for vendor, allowed_paths in VENDOR_IMPORT_ALLOWLIST:
                 if not is_path_allowed(relative, allowed_paths) and is_forbidden(imported, vendor):
                     violations.append(

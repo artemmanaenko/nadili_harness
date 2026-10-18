@@ -17,9 +17,10 @@ Use project scripts for the ticket changelog, commit hook, exact affected integr
 fast-forward `HEAD:main`, bounded Linear update and guarded worktree cleanup.
 
 Immediately after the terminal Linear transition, call Codex's current-task title operation. UAT
-uses `UAT - <stable title>`; Done and Canceled use the stable human-readable title with no status
-prefix. Do this before cleanup so terminal delivery cannot leave a stale `WIP`, `APR` or `BLK`
-title. Report a title-operation failure once; it does not roll back successful integration.
+uses `UAT - <NAD-XXX> - <Brief>`; Done and Canceled use `<NAD-XXX> - <Brief>`, removing only
+the status prefix under root `AGENTS.md`. Do this before cleanup so delivery cannot leave a
+stale `WIP`, `APR` or `BLK` title. Report a title-operation failure once; it does not roll back
+successful integration.
 
 Do not invoke TRIP or gstack `ship`, `land-and-deploy`, PR creation, ticket version stamping,
 tagging or production deployment. Delivery follows the owner's earlier implementation start;

@@ -51,10 +51,10 @@ the workflow again.
 - The installed hook is verified and self-repaired by `shared/scripts/check_hook_install.py` against
   `shared/scripts/hooks/pre-commit`.
 - `bash shared/scripts/pre-commit.sh` remains the full local gate.
-- `bash scripts/pre-release.sh` is the explicit, unreduced candidate qualification suite. Its
+- `bash scripts/pre-release.sh` is the explicit, unreduced full local validation suite. Its
   heavy sequence holds the one machine-wide OS-backed lease through all children and cleanup;
-  nested leaves reuse verified inherited ownership. TRIP-2 uses affected integration checks and
-  `release-candidate.sh qualify` runs the full suite only on the exact approved candidate.
+  nested leaves reuse verified inherited ownership. TRIP-2 uses affected integration checks.
+  The retired production process is unavailable; neither gate authorizes deployment.
 
 `shared/scripts/integration-check.sh` owns the complete merge-base-to-candidate, staged, or dirty path
 union and prints capabilities plus reasons. A `--base/--head` range uses the bounded affected
@@ -70,7 +70,7 @@ is not a release gate and cannot authorize production.
   - `pre-release.sh` owns `pre-commit.sh`, PostgreSQL integration, Admin E2E, runtime liveness, and
     public standalone visual validation.
   - `portability-smoke.sh` owns `smoke-api.sh` under the portability profile plus restore,
-    rollback, rotation, and image checks.
+    and image checks. Old deployment-driven rollback/rotation rehearsal is removed.
 - A `--base/--head` affected check defers release-only browser/visual/portability capabilities
   to qualification and prints their reasons; selected PostgreSQL checks remain fresh. The deliberate local `--dirty` and
   `--staged` scopes retain the full control-plane expansion.
@@ -82,14 +82,11 @@ is not a release gate and cannot authorize production.
 - Plans name required capabilities and the minimal covering runners. They must not list a wrapper
   beside its child commands.
 
-### Release activation boundary
+### Production boundary
 
-`scripts/release-candidate.sh` freezes one source SHA, records a unique attempt through
-`prepared -> qualifying -> qualified -> published` (or failed/abandoned/superseded), and holds the
-publication lock from reservation through candidate publication. Candidate preparation,
-qualification, and publication run locally without a host receipt. The installed host's fixed
-read-only admission preflight retains an activation receipt, and forward deployment consumes it.
-No environment flag enables or bypasses either boundary.
+The prior production orchestration and rollout process is removed by NAD-488. Item integration
+never publishes or deploys. Installed host state validation remains only where current startup
+and configuration consumers require it; it cannot produce a new release.
 
 ---
 
@@ -102,7 +99,7 @@ children may inherit the manager's model and bypass the deliberate cost/quality 
 `.claude/skills/codex-plan-review/scripts/_common.sh` is the single routing authority:
 
 - implementation: `gpt-6-luna`, `high`, `fast` service tier;
-- plan and code review: `gpt-6-sol`, `high`, standard routing.
+- plan and code review: `gpt-6.1-sol`, `high`, standard routing.
 
 In the private Nadili repository, each codex skill has its own wrappers named `start.sh`,
 `resume.sh`, `reset.sh` and `show.sh` in that skill's scripts subdirectory. These wrappers pin the
@@ -116,11 +113,10 @@ thread state, timeout handling, and output capture. Per-batch implementation eff
 allowed only under the criteria in `.claude/skills/codex-implement/SKILL.md`; it does not change
 the implementation model.
 
-Inside a Codex manager task, follow the Runtime permissions contract in
-`shared/process/SKILL.md` when these authenticated networked CLI scripts need
-additional access. Retain any yielded terminal session until completion. A boundary block may
-permit escalation; an explicit review denial does not. Do not switch to a native child to bypass
-a denied action or this adapter's CLI transport requirement.
+Inside a Codex manager task, launch these authenticated networked CLI scripts through the current
+terminal permission-escalation mechanism and retain any yielded terminal session until completion.
+A sandbox or network denial is not a reason to fall back to a native child; retry the exact script
+through escalation or report the blocker.
 
 ### Standing Codex-delegation authorization
 
@@ -140,10 +136,10 @@ It covers, explicitly and permanently:
 One grant, not one per call. A prompt asked at TRIP-1 review, again at TRIP-2 implementation and
 again at each batch is the same question answered once, already, here.
 
-This standing grant authorizes delegation, not runtime access. Route any required technical
-approval through the effective runtime mechanism under the shared Runtime permissions contract;
-do not ask the owner to authorize delegation again. A denial or unavailable approval mechanism
-must be handled under that contract, with the action and reason reported.
+A runtime approval dialog — the Codex CLI's own sandbox/network escalation, a harness permission
+prompt — is a **mechanism to satisfy**, never a decision to hand to the owner: escalate through it
+and continue. If escalation is genuinely refused by the runtime, that is a blocker to report in
+one line, not a question to ask.
 
 The scripts are safe to run autonomously by construction: reviews and `codex-ask` run
 `--sandbox read-only`; `codex-implement` runs `workspace-write` with no network and makes no
@@ -757,61 +753,11 @@ prompt. Absent such a line, deliver.
 
 ---
 
-## 7. Versions belong to candidates
+## 7. Release classification
 
-**A plan declares a release type. It never declares a release number.**
-
-```markdown
-Release type: patch        # or: minor / major
-```
-
-Tickets integrate without reserving, stamping, or publishing candidate identifiers. The candidate
-coordinator assigns the number only after it has the complete ticket membership and a clean `main`
-checkout. This keeps ticket integration independent and lets the candidate own one immutable
-source SHA.
-
-### 7.1 Candidate reservation
-
-`production-release.md` delegates reservation to `release-candidate.sh prepare`, which calls the
-existing reservation helper after fetching the remote candidate state:
-
-```bash
-venv/bin/python scripts/next_version.py <release-type> --fetch --reserve <ITEM-ID>
-```
-
-The helper composes published candidates and live reservations. The reservation store is
-`${NADILI_VERSION_RESERVE_DIR:-${NADILI_GATE_LOCK_DIR:-${TMPDIR:-/tmp}/nadili-gate-locks}/version-reservations}`;
-entries hold the item id and ISO timestamp, and expire after `NADILI_VERSION_RESERVE_TTL` seconds
-(default `7200`). Liveness is TTL-based, not PID-based, because one candidate spans many shells.
-
-The same prepare operation runs `scripts/release_stamp.py` for the named ticket changelogs. It
-stamps only candidate-owned aggregate fields, appends the existing artifact marker, stages the
-three stamped files with the requested artifacts, commits, and freezes the source SHA. The
-stamper is idempotent for a retried prepare with the same number.
-
-### 7.2 Candidate order
-
-The candidate sequence is deliberately separate from ticket integration:
-
-1. start from clean `main` and freeze the source SHA;
-2. reserve and stamp through `release-candidate.sh prepare`;
-3. qualify the frozen tree with the full unreduced suite;
-4. publish only the qualified candidate;
-5. reconcile failed or abandoned attempts before another reservation.
-
-Qualification and publication remain bound to the exact source SHA. A changed tree, a failed
-capability, or a rejected candidate push requires a new or resumed coordinator attempt according
-to `production-release.md`; ticket evidence is not reused as candidate evidence.
-
-### 7.3 Collision backstop
-
-If `publish` finds the reserved number no longer monotonic against freshly fetched tags, or the
-atomic push is rejected, the attempt is retained as failed with a safe reason and **nothing is
-rewritten**: a sibling candidate won that number. Prepare a new candidate — a fresh reservation,
-a fresh stamp and a fresh qualification of the new frozen SHA — rather than amending the old
-attempt. `publish` is idempotent for a lost push response: an existing remote tag at the expected
-SHA recovers as success, a tag at a different SHA fails closed. Reservation cleanup is explicit
-after a successful publication; TTL cleanup handles an abandoned attempt.
+Plans retain `Release type: patch|minor|major` as impact metadata. Items do not assign release
+numbers, reserve candidates, publish tags or stamp aggregate artifacts. The former production
+process is removed by NAD-488; successor publication requires its own approved plan.
 
 ### 7.4 What a release type means here
 

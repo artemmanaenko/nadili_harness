@@ -24,7 +24,7 @@ fi
 if [[ "${1:-}" == --identity ]]; then
   python -c 'from scripts.gate_evidence import _environment_identity; print(_environment_identity())'
   case "${2:-}" in
-    python-static) printf 'fixed-python-static-v1\n' ;;
+    python-static) printf 'fixed-python-static-v2\n' ;;
     python-unit)
       printf 'workers=%s\nnice=%s\ncurrent_nice=%s\n' \
         "$(nadili_gate_pytest_jobs)" "$(nadili_gate_nice_prefix)" "$(nadili_gate_current_nice)"
@@ -42,6 +42,9 @@ case "${1:-}" in
     nadili_gate_mypy_cache_acquire "$mypy_cache_dir"
     mypy apps/api/ apps/pdf_parser/ core/pdf_documents.py --strict --ignore-missing-imports --exclude '/tests/' \
       --cache-dir "$nadili_mypy_cache_dir"
+    mypy -p scripts --strict --ignore-missing-imports --cache-dir "$nadili_mypy_cache_dir"
+    mypy tests/unit/ --strict --ignore-missing-imports --cache-dir "$nadili_mypy_cache_dir"
+    mypy tests/integration/ --strict --ignore-missing-imports --cache-dir "$nadili_mypy_cache_dir"
     nadili_gate_mypy_cache_release
     ;;
   python-unit)

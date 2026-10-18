@@ -9,8 +9,8 @@ standalone.
 
 A ticket **integrates**; it does not release. It records its code-review and changelog evidence,
 passes the affected integration check, and fast-forwards `main`. It receives **no version and no
-tag**. Versions, tags, the full qualification suite and signed evidence belong to one immutable
-candidate coordinated by `production-release.md`.
+tag**. The separately approved NAD-489 production path is documented in
+`docs/runbooks/deployment.md`; `shared/process/SKILL.md` Production boundary retains its separate authorization.
 
 The main process in `shared/process/SKILL.md` wins. Legacy TRIP details live in
 `adapters/TRIP/process.md`: §1 Linear lifecycle, §2 worktrees, §6 delivery authorization,
@@ -26,17 +26,12 @@ The main process in `shared/process/SKILL.md` wins. Legacy TRIP details live in
 - Review-entry gate green.
 - Independent code review converged (`APPROVED`) with no open P0/P1/P2.
 
-## Candidate and activation boundary
+## Production boundary
 
-`production-release.md` and `bash scripts/release-candidate.sh` are the only place a version is
-reserved, the aggregate artifacts are stamped, the full suite runs, a tag is published and signed
-evidence exists. Ticket integration never does any of those, and never runs the qualification
-suite.
-
-The activation receipt is a **deploy** precondition: the installed host consumes it on forward
-admission (`deploy-release`, the forward branch of `prod-deploy.sh`), and `install-payload`
-carries it across an authority change. It is never a precondition for preparing, qualifying or
-publishing a candidate, and never for integrating a ticket.
+Ticket integration never publishes or deploys an application, creates a version or tag, or runs
+the full standalone validation suite. A separately authorized production release follows
+`docs/runbooks/deployment.md`, never the retired procedure. Historical host evidence alone
+does not qualify a new release.
 
 ### Standalone verification (fresh session, not chained)
 
@@ -89,8 +84,7 @@ date '+%d-%m-%Y %H:%M' && python3 -c "from datetime import date; print('Project 
 ```
 
 Week anchor: the Monday of the week TRIP Init was run. Python rather than `date -d`, which macOS
-BSD `date` lacks. `scripts/release_stamp.py` carries the same anchor for candidate stamping; a
-test pins the two against each other.
+BSD `date` lacks. The project-week anchor does not assign a production version.
 
 ## Step 2: Draft ticket artifacts
 
@@ -151,15 +145,13 @@ Create `docs/2-changelog/NAD-<ID>.md`:
 [Describe what changed]
 ```
 
-`scripts/release_stamp.py` parses **exactly one** `**Object**: ` line per ticket changelog when a
-candidate is prepared — keep it on one line, factual, and unique in the file.
+Keep exactly one factual `**Object**:` line per ticket changelog.
 
-## Step 6: Candidate-only aggregate artifacts
+## Step 6: Published artifacts
 
-There is no ticket step here. `docs/2-changelog/changelog_table.md` (row and summary), the
-README's "Current published release" line and `pyproject.toml`'s `version` are stamped only by
-`release-candidate.sh prepare` through `scripts/release_stamp.py`. A ticket **must not** edit
-them. This also removes the repository's top rebase-conflict target from every ticket.
+Item integration does not change the published version, release tags, aggregate release table
+or README release number. The NAD-489 deployment runbook selects an exact main SHA; it does not
+authorize version or tag publication.
 
 ## Step 7: Architecture update
 
@@ -179,7 +171,7 @@ an over-budget result blocks integration.
 
 ## Step 8: README
 
-No version step. The README's release line is candidate-owned (Step 6). Content corrections
+No version step. Leave the README's published release line unchanged (Step 6). Content corrections
 belong to Step 9 — do not sync sections here.
 
 ## Step 9: Documentation sync
@@ -262,8 +254,8 @@ range, it runs the bounded affected capabilities, including PostgreSQL for backe
 Admin E2E, runtime liveness, public visual validation and portability are candidate-qualification stages, and the check prints
 each deferred capability with its reason. The deliberate local `--dirty` and `--staged` scopes retain the full control-plane expansion, while
 `--dev` executes the affected dirty-scope union. Never substitute a local convenience
-check, and never run the candidate qualification suite here — `production-release.md` runs it once
-per candidate.
+check, and never add the full standalone validation suite merely for integration. Separately
+authorized production qualification follows `docs/runbooks/deployment.md`.
 
 On a red check: fix, commit the fix, rebase, and re-run. If the fix changes reviewed code, tests,
 runtime configuration, or canonical documentation, first run affected micro-gates and return to

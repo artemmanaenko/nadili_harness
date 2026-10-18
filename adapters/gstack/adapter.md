@@ -21,22 +21,26 @@ vendor skill would create conflicting artifacts or actions.
 
 Hotfix entry uses `shared/skills/nadili-hotfix/SKILL.md` and one hotfix contract instead of
 Stages 1–2 artifacts and plan-review roles. Use the Stage 4–7 methods above with that contract;
-no vendor planning workflow is invoked. Existing review/QA independence and budget limits apply.
+no vendor planning workflow is invoked. Existing review/QA independence and non-review budget limits apply. Code-review passes
+retain attempt evidence without ledger round/thread ceilings or owner budget amendments.
 
 New plans use `adapters/gstack/proportional-workflows.md`: record policy/route/reason before costly
 reviews. Its role matrix replaces the legacy fan-out below for recorded proportional items.
 Stage 2 no-impact needs a reason, not a separate architect. Specialists need a concrete risk.
-Stage 4 uses the runner's two explicit modes: the first pass is an exhaustive Sol/xhigh review of
-the complete candidate; a correction pass is Sol/medium over the prior findings and bounded fix
-patch, with direct dependency tracing. The runner generates the correction packet and retains prior findings; see `adapters/gstack/review-cycle.md`.
-An explicitly broader pass needs a reason and remains within the same allowance. Independent runtime QA remains required where
+Stage 4 defaults to an exhaustive Sol/xhigh first review of the complete candidate. The explicit
+`--test-only-initial` route may use Sol/medium only when the runner proves the staged base-to-index
+diff meets the narrow test-only contract; independent assertion-quality and source-consumer review
+still applies. A correction pass is Sol/medium over prior findings and the bounded fix patch, with
+direct dependency tracing. The runner generates the correction packet and retains prior findings;
+see `adapters/gstack/review-cycle.md`.
+An explicitly broader code-review pass needs a reason and retains attempt evidence. Independent runtime QA remains required where
 applicable. Model defaults are provisional until NAD-329 validates them.
 
 In Codex follow `adapters/gstack/orchestrator.md`. Keep the owner's coordinator; use bounded Luna/high
 executor batches and the Stage 4 review modes above, except Small CEO/product plan review uses
 a separate Sol/medium `small_product_reviewer`; Small design/DX stays with the coordinator.
 At most two subagents may be open. Reserve
-and start each dispatch in the external ledger. Model-budget overages require explicit owner
+and start each dispatch in the external ledger. Non-review model-budget overages require explicit owner
 amendment: alerts or recovery alone cannot authorize continuation. Gate overages retain targeted
 recovery, never a validation waiver. TRIP items retain their adapter.
 
@@ -72,7 +76,8 @@ planning. An accepted scope change updates the repository spec before plan appro
 The installed `/ship` bumps VERSION and the aggregate changelog, pushes and creates a PR;
 `/land-and-deploy` expects that PR. Neither is Nadili ticket integration. Here “ship an item”
 means Stage 7 above. Production versioning and deployment remain with
-`../production-release.md` and `scripts/release-candidate.sh`.
+a separately approved successor to the process removed by NAD-488; no production route is
+currently provided by this adapter.
 
 On a QA defect, the implementer fixes it, Stage 4 refreshes its affected checks/review, and
 the independent tester repeats the affected routes on a new frozen candidate. A vendor

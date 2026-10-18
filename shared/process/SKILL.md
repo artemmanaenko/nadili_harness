@@ -41,38 +41,6 @@ happens, not every internal call. Name the exact skill; distinguish **running** 
 workflow from **using its criteria**. If the stage uses only a Nadili skill, name that
 instead. Do not imply that a vendor workflow ran when only its rubric was read.
 
-## Runtime permissions
-
-The owner authorizes the work; the runtime controls whether a specific tool action may execute.
-Before requesting additional access, confirm that the action fits the existing task and standing
-authorization. Runtime approval, including Auto-review, cannot authorize a scope change, a budget
-increase, an implementation start or a release that still requires the owner's decision.
-
-For authorized work, use the runtime's effective permission mechanism without a separate owner
-confirmation. If interactive approvals are available, submit the exact action, target and needed
-access for manual or automatic review; continue only after approval. Observe the active runtime
-settings rather than assuming the repository's defaults apply. Approval covers only the action
-and lifetime granted by the runtime. App-level consent still goes to the owner when required.
-
-Distinguish permission outcomes:
-
-- A sandbox or network block without a review decision permits a bounded escalation when the
-  effective policy supports it. With no interactive approval mechanism, including `never`, use
-  an authorized path within existing permissions or report the specific blocker.
-- An explicit denial requires respecting its rationale. Do not bypass it through another attempt,
-  indirect execution or another adapter. Continue only with a
-  materially safer authorized alternative; otherwise report the action and reason and ask for
-  the required owner decision through the supported override or approval mechanism. An override
-  still follows runtime policy; it does not guarantee approval.
-- A timeout or unavailable reviewer is not approval or evidence that an action is unsafe. Check
-  execution status before retrying; retry only under the runtime's supported retry policy and
-  existing attempt limits. If status or permission remains unknown, report the blocker.
-
-Keep authorized independent work moving while an owner decision is pending. Do not enable Full
-Access, broaden permission rules or replace reviewer policy merely to get past a block. Adapters
-map this contract to their environment; they do not create another permission policy or assume
-Auto-review availability, free billing or quota exemption.
-
 ## Hotfix entry
 
 `shared/skills/nadili-hotfix/SKILL.md` owns entry for an existing patch or a concrete bounded
@@ -82,8 +50,8 @@ separate entry, not a Small risk classification. Risk still controls verificatio
 
 For this route, references in Stages 3–7 and their review/QA/delivery entrypoints to the spec or
 approved plan mean the hotfix contract, including acceptance, QA and UAT/Done decisions.
-Stage 3 readiness uses that contract; proportional planning fields and plan-review roles are
-not required. Reassess actual risk before review and preserve the corresponding verification.
+Stage 3 readiness uses that contract; plan-review roles and proportional planning fields other
+than the route line (Stage 1 step 3) are not required. Reassess actual risk before review and preserve the corresponding verification.
 Readiness and the formal review runner validate the contract explicitly. Planned-item behavior
 is unchanged. The hotfix skill owns authorization, existing-patch transfer, scope and migration;
 Stages 3–7 retain gates, independent review/QA, budget stops and the production-release boundary.
@@ -106,7 +74,9 @@ Stages 3–7 retain gates, independent review/QA, budget stops and the productio
    not product authority.
 3. Create or resume `work/<ID>` with `bash shared/scripts/worktree-new.sh <ID>`; draft
    `docs/work/<ID>/plan.md` **inside that worktree**, never in the shared primary checkout.
-   Record the adapter, `Verification: UAT|Done` with a reason, `Release type:
+   Record the adapter; `**Workflow route:** Small|Standard|High-risk` and `**Route reason:**`
+   under `adapters/gstack/proportional-workflows.md` (every plan and hotfix contract, whatever its adapter or
+   runtime); `Verification: UAT|Done` with a reason, `Release type:
    patch|minor|major`, test and documentation impact, and **separate Backend QA and Frontend QA
    routes**. For each route record applicable/not applicable with a reason, the observable
    behavior, runnable boundary, acceptance oracle, environment, viewport scope and evidence.
@@ -190,9 +160,9 @@ Existing ready issues are never moved backwards; reconcile their plan under the 
    A runner-proven refresh after an `APPROVED` verdict and rebase records full attempt evidence but
    does not consume another formal review round when the item-path delta is empty. It still checks
    upstream impact; any item correction or review after a refresh finding consumes an ordinary round.
-   No open P0/P1/P2 or unresolved review verdict may enter QA or delivery. Stop at the approved
-   review allowance (default two passes), rather than launching another pass without explicit
-   owner amendment. A correction needing fresh review is not deliverable at budget exhaustion.
+   No open P0/P1/P2 or unresolved review verdict may enter QA or delivery. Continue code-review corrections until the valid verdict converges; code-review passes
+   have no ledger round/thread ceilings or owner budget-amendment stops. Preserve attempt evidence,
+   retry diagnosis and repeated-failure recovery; non-review budgets remain unchanged.
 
 ## Stage 5 — Backend QA
 
@@ -263,9 +233,13 @@ Honor only a real owner-only blocker or an explicit plan-level confirmation. Fai
 writes are reported once, never used as a delivery gate; never copy logs, diffs, secrets or
 raw review bodies into Linear. Never weaken a gate or use `--no-verify` to make delivery pass.
 
-## Candidate release boundary
+## Production boundary
 
-An item reaching `main` is **integration**, not a production release. Only
-`production-release.md` and `scripts/release-candidate.sh` reserve a version, stamp aggregate
-artifacts, run the full qualification suite, publish a tag and provide signed evidence.
+Item integration does not deploy, reserve a version, publish images or create a tag.
+NAD-488 retired the previous procedure. Its replacement was separately approved and implemented
+under `docs/work/NAD-489/plan.md`; `docs/runbooks/deployment.md` owns that production path.
+Use it only for an explicitly authorized production-release request, never from item integration
+alone. Any replacement or scope expansion still requires its own approval and implementation;
+new credentials, grants and unrelated provisioning are not implicitly authorized. Never resume
+the retired procedure or treat historical evidence as current qualification.
 Gstack `ship` and `land-and-deploy` are not Nadili item-delivery steps.

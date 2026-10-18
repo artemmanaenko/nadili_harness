@@ -53,6 +53,23 @@ run() {
   printf '[ok] %s\n' "$label"
 }
 
+reset_web_outputs() {
+  local -a apps=()
+  if [[ "$scope" == "all" || "$scope" == "admin" ]]; then
+    apps+=(admin-web)
+  fi
+  if [[ "$scope" == "all" || "$scope" == "public" ]]; then
+    apps+=(public-web)
+  fi
+  venv/bin/python scripts/web_generated_outputs.py reset --repository "$root" --apps "${apps[@]}"
+}
+
+if [[ "$mode" == "full" && "$private_build_phase_invalid" == false && "$private_build_phase" == false ]]; then
+  # Typechecking includes Next's generated route declarations. Reset stale declarations before
+  # any check, then regenerate the selected apps' declarations from the frozen source.
+  reset_web_outputs
+fi
+
 # client-ts and the shared UI are consumed by both apps, so either isolated app scope still runs
 # those shared checks. App-specific checks are selected only after the shared contract surface.
 if [[ "$private_build_phase" == false ]]; then
@@ -63,11 +80,17 @@ if [[ "$private_build_phase" == false ]]; then
   run "Shared UI tests" "${pnpm_command[@]}" --filter @nadili/ui test
   if [[ "$scope" == "all" || "$scope" == "public" ]]; then
     run "Public web lint" "${pnpm_command[@]}" --filter @nadili/web lint
+    if [[ "$mode" == "full" && "$private_build_phase_invalid" == false ]]; then
+      run "Public web type generation" "${pnpm_command[@]}" --filter @nadili/web exec next typegen
+    fi
     run "Public web typecheck" "${pnpm_command[@]}" --filter @nadili/web typecheck
     run "Public web tests" "${pnpm_command[@]}" --filter @nadili/web test
   fi
   if [[ "$scope" == "all" || "$scope" == "admin" ]]; then
     run "Admin web lint" "${pnpm_command[@]}" --filter @nadili/admin-web lint
+    if [[ "$mode" == "full" && "$private_build_phase_invalid" == false ]]; then
+      run "Admin web type generation" "${pnpm_command[@]}" --filter @nadili/admin-web exec next typegen
+    fi
     run "Admin web typecheck" "${pnpm_command[@]}" --filter @nadili/admin-web typecheck
     run "Admin web tests" "${pnpm_command[@]}" --filter @nadili/admin-web test
   fi

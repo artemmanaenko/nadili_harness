@@ -16,7 +16,7 @@ is prepared. The vendor TRIP files and the shims in `adapters/TRIP/shims/` remai
 | Frontend QA | Dispatch an independent fresh-context tester invocation under `shared/process/SKILL.md` Stage 6 for applicable browser journeys. Use project Playwright/browser tools and record the separate verdict in the same verification file. |
 | QA defects | The implementer fixes QA defects, refreshes affected code review, then returns a new candidate for affected-route retesting. `adapters/TRIP/implement.md`'s automated gate and `shared/process/testing.md` remain required. |
 | Integrate | `TRIP-3-release` delegates to `shared/process/integrate.md`. Its name means **ticket integration**, not a production release. |
-| Candidate | `../production-release.md` remains a separate coordinator. |
+| Production | Previous deployment process removed by NAD-488; item integration never deploys. |
 
 Add `Workflow adapter: trip` to newly created plans. Existing plans without the line remain
 TRIP items for compatibility. The legacy phase files contain TRIP-specific instructions; they

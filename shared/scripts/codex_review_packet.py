@@ -182,7 +182,8 @@ def review_metrics(state_directory: Path, limit: int) -> list[dict[str, object]]
                 if not isinstance(origin, str) or origin not in counts:
                     raise PacketError("review history has invalid finding origin")
                 if finding.get("priority") in {"P0", "P1", "P2"} and (
-                    origin != "initial_miss" or context.get("mode") != "initial"
+                    origin != "initial_miss"
+                    or context.get("mode") not in {"initial", "test_only_initial"}
                 ):
                     counts[origin] += 1
         rows.append(

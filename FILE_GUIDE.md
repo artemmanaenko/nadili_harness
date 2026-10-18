@@ -34,10 +34,14 @@ Exported file references are rewritten; references to omitted private product fi
 | [adapters/gstack/review-cycle.md](adapters/gstack/review-cycle.md) | Verifies corrections without restarting an unbounded review cycle. |
 | [adapters/gstack/roles/architect.toml](adapters/gstack/roles/architect.toml) | Architect role: model, permissions and architecture review rules. |
 | [adapters/gstack/roles/backend_qa.toml](adapters/gstack/roles/backend_qa.toml) | Backend tester role: model, permissions and independent scenarios. |
+| [adapters/gstack/roles/code_explorer.toml](adapters/gstack/roles/code_explorer.toml) | Read-only discovery for one bounded codebase question. |
 | [adapters/gstack/roles/executor.toml](adapters/gstack/roles/executor.toml) | Implementation worker: bounded work batches and available tools. |
+| [adapters/gstack/roles/focused_backend_qa.toml](adapters/gstack/roles/focused_backend_qa.toml) | Backend tester for one simple scenario with an explicit oracle. |
+| [adapters/gstack/roles/focused_frontend_qa.toml](adapters/gstack/roles/focused_frontend_qa.toml) | Browser tester for one simple journey with an explicit oracle. |
 | [adapters/gstack/roles/frontend_qa.toml](adapters/gstack/roles/frontend_qa.toml) | Browser tester role: model, permissions and journey verification. |
 | [adapters/gstack/roles/reviewer.toml](adapters/gstack/roles/reviewer.toml) | Plan reviewer covering product, design and developer experience. |
 | [adapters/gstack/roles/small_product_reviewer.toml](adapters/gstack/roles/small_product_reviewer.toml) | Focused product review for Small plans. |
+| [adapters/gstack/roles/standard_plan_reviewer.toml](adapters/gstack/roles/standard_plan_reviewer.toml) | Combined product, design and DX review for Standard plans. |
 | [adapters/gstack/config.toml](adapters/gstack/config.toml) | Codex sandbox, approval and agent concurrency settings. |
 | [adapters/gstack/orchestrator.md](adapters/gstack/orchestrator.md) | Coordinates agents, budgets, code review and QA. |
 
@@ -58,6 +62,8 @@ Exported file references are rewritten; references to omitted private product fi
 | [shared/skills/nadili-plan/SKILL.md](shared/skills/nadili-plan/SKILL.md) | Prepares the specification, plan, issue and architecture review. |
 | [shared/skills/nadili-review/SKILL.md](shared/skills/nadili-review/SKILL.md) | Reviews implementation before independent QA. |
 | [shared/claude/settings.json](shared/claude/settings.json) | Connects the Git guard to Claude shell commands. |
+| [shared/claude/role-models.toml](shared/claude/role-models.toml) | Claude models for the implementer and selected roles when Claude Code coordinates. |
+| [shared/claude/skills/codex-role/SKILL.md](shared/claude/skills/codex-role/SKILL.md) | Dispatches each fresh-context role as a separate Codex or Claude CLI run. |
 | [shared/claude/skills/nadili-architecture/SKILL.md](shared/claude/skills/nadili-architecture/SKILL.md) | Redirects Claude to the matching skill in shared/skills/. |
 | [shared/claude/skills/nadili-backend-qa/SKILL.md](shared/claude/skills/nadili-backend-qa/SKILL.md) | Redirects Claude to the matching skill in shared/skills/. |
 | [shared/claude/skills/nadili-deliver/SKILL.md](shared/claude/skills/nadili-deliver/SKILL.md) | Redirects Claude to the matching skill in shared/skills/. |
@@ -79,10 +85,13 @@ Exported file references are rewritten; references to omitted private product fi
 | [shared/scripts/check_item_ready.py](shared/scripts/check_item_ready.py) | Checks that a worktree and plan or hotfix contract exist. |
 | [shared/scripts/check_plan_interleaving.py](shared/scripts/check_plan_interleaving.py) | Checks that the item contract covers shared-state changes. |
 | [shared/scripts/check_work_item_scope.py](shared/scripts/check_work_item_scope.py) | Prevents mixing unrelated work items in one commit. |
+| [shared/scripts/claude_implement.py](shared/scripts/claude_implement.py) | Runs and resumes the implementer on Claude when Claude Code coordinates. |
+| [shared/scripts/claude_transport.py](shared/scripts/claude_transport.py) | Builds the sandboxed Claude CLI run and validates its event stream. |
 | [shared/scripts/codex_code_review.py](shared/scripts/codex_code_review.py) | Runs bounded independent code review and validates its result. |
 | [shared/scripts/codex_code_review.schema.json](shared/scripts/codex_code_review.schema.json) | Defines the JSON format for review verdicts and findings. |
 | [shared/scripts/codex_orchestration_budget.py](shared/scripts/codex_orchestration_budget.py) | Tracks agent and check attempts and enforces action limits. |
 | [shared/scripts/codex_review_packet.py](shared/scripts/codex_review_packet.py) | Builds correction review context and deltas from Git snapshots. |
+| [shared/scripts/codex_role_dispatch.py](shared/scripts/codex_role_dispatch.py) | Runs one role file as a fresh one-shot Codex or Claude process with budget accounting. |
 | [shared/scripts/dev-check.sh](shared/scripts/dev-check.sh) | Runs affected integration checks during development. |
 | [shared/scripts/gate_evidence.py](shared/scripts/gate_evidence.py) | Stores and safely reuses Python check evidence. |
 | [shared/scripts/gate_executor.py](shared/scripts/gate_executor.py) | Serializes heavy checks and supervises their processes. |
