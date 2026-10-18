@@ -5,11 +5,15 @@ from __future__ import annotations
 
 import argparse
 import codecs
+import ctypes
+import errno
 import fcntl
+import functools
 import io
 import json
 import math
 import os
+import re
 import secrets
 import selectors
 import shutil
@@ -38,6 +42,9 @@ PROCESS_CLEANUP_SECONDS = 5.0
 RESOURCE_BUSY_EXIT_STATUS = 75
 MAX_HOLDER_BYTES = 4096
 MAX_REHEARSAL_RUNS = 3
+GROUP_ENTRY_TEMP_PREFIX = ".group."
+#: A process's kernel start time as ``<epoch seconds>.<microseconds>``, e.g. ``1792081893.049623``.
+LEADER_START_RE = re.compile(r"[1-9][0-9]{0,11}\.[0-9]{6}")
 
 
 class GateExecutorError(RuntimeError):
@@ -450,35 +457,303 @@ def _registry_guard(registry: Path) -> Iterator[None]:
         os.close(descriptor)
 
 
+# Process state is read from the kernel directly (sysctl on macOS, /proc on Linux), never by
+# running ps: agent sandboxes such as Codex's refuse to exec /bin/ps, and admission must work
+# wherever a sandboxed role starts a heavy leg.
+#: ``struct kinfo_proc`` on 64-bit macOS: ``kp_proc`` opens with the start ``timeval``, then
+#: ``p_stat`` and ``p_pid`` at fixed offsets.
+_KINFO_PROC_SIZE = 648
+_KP_STAT_OFFSET = 36
+_KP_PID_OFFSET = 40
+_SZOMB = 5
+_CTL_KERN = 1
+_KERN_ARGMAX = 8
+_KERN_PROC = 14
+_KERN_PROCARGS2 = 49
+_KERN_PROC_PID = 1
+_KERN_PROC_PGRP = 2
+#: Sizing and reading a process table are two calls; retry when it grew in between.
+_SYSCTL_ATTEMPTS = 3
+
+
+@dataclass(frozen=True, slots=True)
+class _KernelProcess:
+    process_id: int
+    started: str
+    is_zombie: bool
+
+
+@functools.cache
+def _sysctl_function() -> Callable[..., int]:
+    function = ctypes.CDLL(None, use_errno=True).sysctl
+    function.argtypes = [
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.c_uint,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_size_t),
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+    ]
+    function.restype = ctypes.c_int
+    return function
+
+
+def _darwin_sysctl(name: Sequence[int], capacity: int | None = None) -> bytes:
+    sysctl = _sysctl_function()
+    mib = (ctypes.c_int * len(name))(*name)
+    for _attempt in range(_SYSCTL_ATTEMPTS):
+        size = capacity
+        if size is None:
+            estimate = ctypes.c_size_t(0)
+            if sysctl(mib, len(name), None, ctypes.byref(estimate), None, 0) != 0:
+                break
+            size = estimate.value + 8 * _KINFO_PROC_SIZE
+        buffer = ctypes.create_string_buffer(max(size, 1))
+        length = ctypes.c_size_t(size)
+        if sysctl(mib, len(name), buffer, ctypes.byref(length), None, 0) == 0:
+            return buffer.raw[: length.value]
+        if capacity is not None or ctypes.get_errno() != errno.ENOMEM:
+            break
+    raise GateExecutorError("heavy process status is unavailable")
+
+
+def _darwin_processes(name: Sequence[int]) -> list[_KernelProcess]:
+    raw = _darwin_sysctl(name)
+    if len(raw) % _KINFO_PROC_SIZE:
+        raise GateExecutorError("heavy process status is unavailable")
+    processes: list[_KernelProcess] = []
+    for offset in range(0, len(raw), _KINFO_PROC_SIZE):
+        record = raw[offset : offset + _KINFO_PROC_SIZE]
+        seconds = int.from_bytes(record[0:8], sys.byteorder, signed=True)
+        microseconds = int.from_bytes(record[8:12], sys.byteorder, signed=True)
+        if seconds <= 0 or not 0 <= microseconds < 1_000_000:
+            raise GateExecutorError("heavy process status is unavailable")
+        process_id = int.from_bytes(
+            record[_KP_PID_OFFSET : _KP_PID_OFFSET + 4], sys.byteorder, signed=True
+        )
+        processes.append(
+            _KernelProcess(
+                process_id=process_id,
+                started=f"{seconds}.{microseconds:06d}",
+                is_zombie=record[_KP_STAT_OFFSET] == _SZOMB,
+            )
+        )
+    return processes
+
+
+def _linux_process(process_id: int) -> tuple[_KernelProcess, int] | None:
+    """Return the process and its process group id, or None when no process has that id."""
+
+    try:
+        raw = Path(f"/proc/{process_id}/stat").read_bytes()
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+    except OSError as exc:
+        raise GateExecutorError("heavy process status is unavailable") from exc
+    try:
+        # The command name may contain spaces and parentheses; fields resume after the last ")".
+        fields = raw[raw.rindex(b")") + 2 :].split()
+        state, process_group, ticks = fields[0], int(fields[2]), int(fields[19])
+    except (ValueError, IndexError) as exc:
+        raise GateExecutorError("heavy process status is unavailable") from exc
+    # Time since boot, in clock ticks: stable for the process, unlike a derived wall-clock time.
+    ticks_per_second = os.sysconf("SC_CLK_TCK")
+    microseconds = ticks % ticks_per_second * 1_000_000 // ticks_per_second
+    process = _KernelProcess(
+        process_id=process_id,
+        started=f"{ticks // ticks_per_second}.{microseconds:06d}",
+        is_zombie=state == b"Z",
+    )
+    return process, process_group
+
+
+def _kernel_process(process_id: int) -> _KernelProcess | None:
+    if sys.platform == "darwin":
+        found = _darwin_processes((_CTL_KERN, _KERN_PROC, _KERN_PROC_PID, process_id))
+        return next((process for process in found if process.process_id == process_id), None)
+    if sys.platform.startswith("linux"):
+        entry = _linux_process(process_id)
+        return None if entry is None else entry[0]
+    raise GateExecutorError("heavy process status is unsupported on this platform")
+
+
+def _group_processes(process_group: int) -> list[_KernelProcess]:
+    if sys.platform == "darwin":
+        return _darwin_processes((_CTL_KERN, _KERN_PROC, _KERN_PROC_PGRP, process_group))
+    if sys.platform.startswith("linux"):
+        try:
+            process_ids = [int(name) for name in os.listdir("/proc") if name.isdecimal()]
+        except OSError as exc:
+            raise GateExecutorError("heavy process status is unavailable") from exc
+        members: list[_KernelProcess] = []
+        for process_id in process_ids:
+            entry = _linux_process(process_id)
+            if entry is not None and entry[1] == process_group:
+                members.append(entry[0])
+        return members
+    raise GateExecutorError("heavy process status is unsupported on this platform")
+
+
+def _process_environment(process_id: int) -> list[bytes]:
+    """Return a process's environment strings; empty where the kernel withholds them.
+
+    macOS withholds the environment of platform binaries such as ``/bin/sh``.
+    """
+
+    if sys.platform == "darwin":
+        argument_limit = int.from_bytes(
+            _darwin_sysctl((_CTL_KERN, _KERN_ARGMAX), ctypes.sizeof(ctypes.c_int)), sys.byteorder
+        )
+        raw = _darwin_sysctl((_CTL_KERN, _KERN_PROCARGS2, process_id), argument_limit)
+        if len(raw) < 4:
+            return []
+        # Layout: argc, the executable path, NUL padding, argc arguments, then the environment.
+        argument_count = int.from_bytes(raw[:4], sys.byteorder)
+        items = raw[4:].split(b"\0")
+        index = 1
+        while index < len(items) and not items[index]:
+            index += 1
+        environment: list[bytes] = []
+        for item in items[index + argument_count :]:
+            if not item:
+                break
+            environment.append(item)
+        return environment
+    try:
+        raw = Path(f"/proc/{process_id}/environ").read_bytes()
+    except OSError as exc:
+        raise GateExecutorError("heavy process status is unavailable") from exc
+    return [item for item in raw.split(b"\0") if item]
+
+
+def _process_start_time(process_id: int) -> str | None:
+    """Return a process's kernel start time, or None when no process has that id.
+
+    Ids are allocated in sequence and never while still in use as a process group or session id,
+    so the same id with the same start time can only be the same process.
+    """
+
+    process = _kernel_process(process_id)
+    if process is None:
+        return None
+    if not LEADER_START_RE.fullmatch(process.started):
+        raise GateExecutorError("heavy process status is unavailable")
+    return process.started
+
+
+def _write_group_entry(entry: Path, leader_started: str) -> None:
+    """Publish the entry whole: teardown treats a partial identity as an error."""
+
+    file_descriptor, temporary_name = tempfile.mkstemp(
+        prefix=GROUP_ENTRY_TEMP_PREFIX, dir=entry.parent
+    )
+    try:
+        with os.fdopen(file_descriptor, "w", encoding="utf-8") as entry_file:
+            json.dump({"leader_started": leader_started}, entry_file)
+        os.replace(temporary_name, entry)
+    except BaseException:
+        Path(temporary_name).unlink(missing_ok=True)
+        raise
+
+
+def _read_group_entry(entry: Path) -> tuple[int, str]:
+    raw_pid = entry.name.removeprefix("group-")
+    if not raw_pid.isdecimal() or int(raw_pid) <= 1 or int(raw_pid) == os.getpgrp():
+        raise GateExecutorError("heavy lease process group identity is invalid")
+    try:
+        raw = entry.read_bytes()
+        value = json.loads(raw) if len(raw) <= MAX_HOLDER_BYTES else None
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise GateExecutorError("heavy lease process group identity is invalid") from exc
+    leader_started = value.get("leader_started") if isinstance(value, dict) else None
+    # A corrupt identity would read as "leader replaced" and let release skip a live admitted
+    # group, so anything that is not a start time fails closed like a malformed name.
+    if not isinstance(leader_started, str) or not LEADER_START_RE.fullmatch(leader_started):
+        raise GateExecutorError("heavy lease process group identity is invalid")
+    return int(raw_pid), leader_started
+
+
 def _exec_registered_command(command: Sequence[str]) -> int:
     """Register this session before exec; a closing owner refuses new heavy work."""
 
     lock_root = Path(os.environ["NADILI_GATE_LEASE_ROOT"])
     inherited_lease_fd(os.environ, lock_root)
     registry = _lease_group_registry(lock_root, os.environ["NADILI_GATE_LEASE_TOKEN"])
+    # Record who leads the group, so teardown can tell this group from a later one that reuses
+    # its id. exec keeps the pid and therefore the start time.
+    leader_started = _process_start_time(os.getpgrp())
+    if leader_started is None:
+        raise GateExecutorError("heavy lease process group leader is unavailable")
     with _registry_guard(registry):
         # The owner can finish between our first verification and taking this guard.
         # Recheck authority here; stale wrappers must never resurrect group admission.
         inherited_lease_fd(os.environ, lock_root)
         if (registry / "closing").exists():
             raise GateExecutorError("heavy lease is closing")
-        (registry / f"group-{os.getpgrp()}").touch(mode=0o600)
+        _write_group_entry(registry / f"group-{os.getpgrp()}", leader_started)
     os.execvpe(command[0], list(command), dict(os.environ))  # noqa: S606 — explicit supervised argv.
     return 2
 
 
+def _group_carries_lease_token(process_group: int, token: str) -> bool:
+    """Whether a live member's environment proves it belongs to this lease.
+
+    Only positive proof counts: a withheld environment, or any status failure, is no proof.
+    """
+
+    marker = f"NADILI_GATE_LEASE_TOKEN={token}".encode()
+    for process_id in _live_group_members(process_group):
+        with suppress(GateExecutorError):  # The member may exit or withhold its environment.
+            if marker in _process_environment(process_id):
+                return True
+    return False
+
+
+def _registered_group_is_current(process_group: int, leader_started: str, token: str) -> bool:
+    """Prove a registered group is still the one admitted under this lease before signalling it.
+
+    A supervisor that crashed leaves its entry behind. By teardown the id may name an unrelated
+    group of the same user, such as a sibling worktree's gate; signalling it would kill that work.
+    """
+
+    try:
+        current = _process_start_time(process_group)
+        if current == leader_started:
+            return True
+        if current is not None:
+            reason = "leader_replaced"
+        elif not _signal_group(process_group, 0):
+            return False  # Nothing left to stop.
+        elif _group_carries_lease_token(process_group, token):
+            # A pgid with live members is never reused, so the orphans of our exited leader are
+            # the only members this group can have.
+            return True
+        else:
+            reason = "leader_exited_unverified"
+    except GateExecutorError:
+        reason = "status_unavailable"
+    print(
+        f"gate_executor: process_group_skipped group={process_group} reason={reason}",
+        file=sys.stderr,
+    )
+    return False
+
+
 def _cleanup_lease_groups(lock_root: Path, token: str) -> None:
-    """Close group admission, then stop every registered group before owner unlock."""
+    """Close group admission, then stop every verified registered group before owner unlock."""
 
     registry = _lease_group_registry(lock_root, token)
     with _registry_guard(registry):
         (registry / "closing").touch(mode=0o600)
-        groups = list(registry.glob("group-*"))
-    for entry in groups:
-        raw_pid = entry.name.removeprefix("group-")
-        if not raw_pid.isdecimal() or int(raw_pid) <= 1 or int(raw_pid) == os.getpgrp():
-            raise GateExecutorError("heavy lease process group identity is invalid")
-        _terminate_group(int(raw_pid))
+        # Read every identity under the guard: a surviving nested supervisor deregisters its own
+        # entry under this same guard, and may do so while an earlier group is being stopped.
+        groups = [(entry, _read_group_entry(entry)) for entry in registry.glob("group-*")]
+        # An admission that died before publishing its entry never reached exec.
+        for temporary in registry.glob(f"{GROUP_ENTRY_TEMP_PREFIX}*"):
+            temporary.unlink(missing_ok=True)
+    for entry, (process_group, leader_started) in groups:
+        if _registered_group_is_current(process_group, leader_started, token):
+            _terminate_group(process_group)
         entry.unlink(missing_ok=True)
 
 
@@ -507,24 +782,16 @@ def _signal_group(process_group: int, signal_number: int) -> bool:
     return True
 
 
-def _group_has_live_members(process_group: int) -> bool:
+def _live_group_members(process_group: int) -> list[int]:
     """Zombies cannot run or retain descriptors; distinguish them from live group members."""
 
-    try:
-        snapshot = subprocess.run(  # noqa: S603 — fixed ps argv; no arguments or environment read.
-            ["/bin/ps", "-axo", "pgid=,stat="],
-            check=True,
-            text=True,
-            capture_output=True,
-            timeout=PROCESS_CLEANUP_SECONDS,
-        )
-    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-        raise GateExecutorError("heavy process group status is unavailable") from exc
-    for line in snapshot.stdout.splitlines():
-        fields = line.split()
-        if len(fields) == 2 and fields[0] == str(process_group) and not fields[1].startswith("Z"):
-            return True
-    return False
+    return [
+        process.process_id for process in _group_processes(process_group) if not process.is_zombie
+    ]
+
+
+def _group_has_live_members(process_group: int) -> bool:
+    return bool(_live_group_members(process_group))
 
 
 def _terminate_group(process_group: int, process: subprocess.Popen[str] | None = None) -> None:
